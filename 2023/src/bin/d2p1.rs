@@ -33,9 +33,9 @@ fn main() {
     let input = std::fs::read_to_string("src/input/d2p1.txt").unwrap();
 
     let maxes = HashMap::from([
-        ("red".to_owned(), 12),
-        ("green".to_owned(), 13),
-        ("blue".to_owned(), 14),
+        ("red".to_string(), 12),
+        ("green".to_string(), 13),
+        ("blue".to_string(), 14),
     ]);
 
     let total: i32 = input

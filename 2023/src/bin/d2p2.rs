@@ -35,15 +35,15 @@ fn main() {
         .map(|line| Game::from(line))
         .map(|game| {
             let mut maxes = HashMap::from([
-                ("red".to_owned(), 0),
-                ("green".to_owned(), 0),
-                ("blue".to_owned(), 0),
+                ("red".to_string(), 0),
+                ("green".to_string(), 0),
+                ("blue".to_string(), 0),
             ]);
 
             game.subsets.iter().for_each(|subset| {
                 subset.iter().for_each(|(num, color)| {
                     let max_num = maxes.get(color).unwrap();
-                    maxes.insert(color.to_owned(), *max_num.max(num));
+                    maxes.insert(color.to_string(), *max_num.max(num));
                 });
             });
 
