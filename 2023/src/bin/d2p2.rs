@@ -1,3 +1,5 @@
+use std::collections::hash_map::HashMap;
+
 #[derive(Debug)]
 struct Game {
     subsets: Vec<Vec<(i32, String)>>,
@@ -32,20 +34,20 @@ fn main() {
         .lines()
         .map(|line| Game::from(line))
         .map(|game| {
-            let mut red = 0;
-            let mut blue = 0;
-            let mut green = 0;
+            let mut maxes = HashMap::from([
+                ("red".to_owned(), 0),
+                ("green".to_owned(), 0),
+                ("blue".to_owned(), 0),
+            ]);
 
             game.subsets.iter().for_each(|subset| {
-                subset.iter().for_each(|(num, color)| match color.as_str() {
-                    "red" => red = red.max(*num),
-                    "blue" => blue = blue.max(*num),
-                    "green" => green = green.max(*num),
-                    _ => (),
-                })
+                subset.iter().for_each(|(num, color)| {
+                    let max_num = maxes.get(color).unwrap();
+                    maxes.insert(color.to_owned(), *max_num.max(num));
+                });
             });
 
-            red * blue * green
+            maxes.values().fold(1, |acc, x| acc * x)
         })
         .sum();
 
