@@ -6,19 +6,17 @@ struct Game {
 
 impl From<&str> for Game {
     fn from(s: &str) -> Self {
-        let mut parts = s.split(": ");
-        let id = parts.next().unwrap()[5..].parse::<i32>().unwrap();
-        let subsets = parts
-            .next()
-            .unwrap()
+        let (id, subsets) = s.split_once(": ").unwrap();
+        let id = id[5..].parse::<i32>().unwrap();
+        let subsets = subsets
             .split("; ")
             .map(|subset| {
                 subset
                     .split(", ")
                     .map(|item| {
-                        let mut item = item.split(' ');
-                        let num = item.next().unwrap().parse::<i32>().unwrap();
-                        let word = item.next().unwrap().to_string();
+                        let (num, word) = item.split_once(' ').unwrap();
+                        let num = num.parse::<i32>().unwrap();
+                        let word = word.to_string();
                         (num, word)
                     })
                     .collect::<Vec<_>>()

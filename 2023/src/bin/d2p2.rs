@@ -1,16 +1,12 @@
 #[derive(Debug)]
 struct Game {
-    id: i32,
     subsets: Vec<Vec<(i32, String)>>,
 }
 
 impl From<&str> for Game {
     fn from(s: &str) -> Self {
-        let mut parts = s.split(": ");
-        let id = parts.next().unwrap()[5..].parse::<i32>().unwrap();
-        let subsets = parts
-            .next()
-            .unwrap()
+        let (_, subsets) = s.split_once(": ").unwrap();
+        let subsets = subsets
             .split("; ")
             .map(|subset| {
                 subset
@@ -25,7 +21,7 @@ impl From<&str> for Game {
             })
             .collect::<Vec<_>>();
 
-        Game { id, subsets }
+        Game { subsets }
     }
 }
 
