@@ -16,9 +16,9 @@ impl From<&str> for Game {
                 subset
                     .split(", ")
                     .map(|item| {
-                        let mut item = item.split(' ');
-                        let num = item.next().unwrap().parse::<i32>().unwrap();
-                        let word = item.next().unwrap().to_string();
+                        let (num, word) = item.split_once(' ').unwrap();
+                        let num = num.parse::<i32>().unwrap();
+                        let word = word.to_string();
                         (num, word)
                     })
                     .collect::<Vec<_>>()
