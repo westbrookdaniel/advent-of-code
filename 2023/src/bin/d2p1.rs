@@ -40,7 +40,7 @@ fn main() {
 
     let total: i32 = input
         .lines()
-        .map(|line| Game::from(line))
+        .map(Game::from)
         .filter(|game| {
             game.subsets.iter().all(|subset| {
                 subset.iter().all(|(num, color)| {

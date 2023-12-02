@@ -1,7 +1,7 @@
 fn main() {
     let input = std::fs::read_to_string("src/input/d1p1.txt").unwrap();
 
-    let nums_word = vec![
+    let nums_word = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
 
@@ -24,7 +24,7 @@ fn main() {
             let first = matches.first().unwrap();
             let last = matches.last().unwrap();
 
-            return format!("{}{}", first, last).parse::<u32>().unwrap();
+            format!("{}{}", first, last).parse::<u32>().unwrap()
         })
         .sum();
 

@@ -32,7 +32,7 @@ fn main() {
 
     let total: i32 = input
         .lines()
-        .map(|line| Game::from(line))
+        .map(Game::from)
         .map(|game| {
             let mut maxes = HashMap::from([
                 ("red".to_string(), 0),
@@ -47,7 +47,7 @@ fn main() {
                 });
             });
 
-            maxes.values().fold(1, |acc, x| acc * x)
+            maxes.values().product::<i32>()
         })
         .sum();
 
