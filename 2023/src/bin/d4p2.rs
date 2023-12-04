@@ -33,9 +33,9 @@ fn main() {
     let input = std::fs::read_to_string("src/input/d4p1.txt").unwrap();
 
     let cards = input.lines().map(Card::from).collect::<Vec<Card>>();
-    let mut copies = Vec::new();
+    let mut copies: Vec<i32> = Vec::new();
 
-    for card in cards.iter() {
+    cards.iter().for_each(|card| {
         let mut wins = 0;
         for num in &card.nums {
             if card.winning_nums.contains(num) {
@@ -43,14 +43,11 @@ fn main() {
             }
         }
 
+        let to_copy = card.id..(wins + card.id);
         let n = copies.iter().filter(|id| **id == card.id).count() + 1;
 
-        for _ in 1..=n {
-            for id in card.id + 1..(wins + card.id + 1) {
-                copies.push(id);
-            }
-        }
-    }
+        copies.extend(to_copy.flat_map(|id| (1..=n).map(move |_| id + 1)));
+    });
 
     println!("{}", cards.len() + copies.len());
 }
