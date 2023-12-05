@@ -1,33 +1,41 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use rayon::prelude::*;
 
-#[tokio::main]
-async fn main() {
+struct Map {
+    entries: Vec<(usize, usize, usize)>,
+}
+
+impl Map {
+    fn locate(&self, seed: usize) -> usize {
+        let range = self
+            .entries
+            .iter()
+            .find(|(s, _, r)| seed >= *s && seed <= s + r);
+
+        if let Some((source, dest, _)) = range {
+            dest + (seed - source)
+        } else {
+            seed
+        }
+    }
+}
+
+fn main() {
     let input = std::fs::read_to_string("src/input/d5p1.txt").unwrap();
 
     let mut lines = input.lines();
 
-    let seeds_ranges = lines.next().unwrap();
-    let seeds_ranges = seeds_ranges[6..]
+    let seeds = lines.next().unwrap();
+    let seeds = seeds[6..]
         .trim()
         .split(' ')
         .map(|s| s.parse::<usize>().unwrap())
-        .collect::<Vec<_>>();
+        .collect::<Box<_>>();
 
-    // move to pairs and expand pairs to ranges
-    let mut seeds = Vec::new();
-    for i in 0..seeds_ranges.len() / 2 {
-        let from = seeds_ranges[i * 2];
-        let to = seeds_ranges[i * 2 + 1];
-        let range = if from > to { to..=from } else { from..=to };
-        seeds.push(range)
-    }
-
-    let mut maps: Vec<Vec<(usize, usize, usize)>> = Vec::new();
+    let mut maps: Vec<Map> = Vec::new();
 
     let mut from = "";
     let mut to = "";
-    let mut ranges = Vec::new();
+    let mut entries = Vec::new();
 
     lines.for_each(|line| {
         if line.ends_with(" map:") {
@@ -38,51 +46,33 @@ async fn main() {
             let dest = line[0].parse::<usize>().unwrap();
             let source = line[1].parse::<usize>().unwrap();
             let range = line[2].parse::<usize>().unwrap();
-            ranges.push((source, dest, range));
+            entries.push((source, dest, range));
         } else if (from, to) != ("", "") {
-            println!("from: {}, to: {}", from, to);
-            maps.push(ranges.clone());
+            maps.push(Map {
+                entries: entries.clone(),
+            });
         }
     });
 
-    let min = {
-        let min = Arc::new(Mutex::new(std::usize::MAX));
-
-        let mut handlers = vec![];
-
-        for seed in seeds {
-            for s_start in seed.step_by(100000) {
-                let maps = maps.clone();
-                let min = min.clone();
-                handlers.push(tokio::spawn(async move {
-                    for s in s_start..s_start + 100000 {
-                        let mut value = s;
-                        for map in &maps {
-                            let range = map.iter().find(|(source, _, range)| {
-                                return value >= *source && value <= source + range;
-                            });
-
-                            if let Some((source, dest, _)) = range {
-                                let diff = value - source;
-                                value = dest + diff;
-                            } else {
-                                continue;
-                            }
-                        }
-                        let mut min = min.lock().await;
-                        if value < *min {
-                            *min = value;
-                        }
-                    }
-                }));
-            }
-        }
-
-        futures::future::join_all(handlers).await;
-
-        let min = min.lock().await;
-        *min
-    };
+    let min = seeds
+        .chunks(2)
+        .map(|s| s[0]..s[0] + s[1])
+        .map(|seed| {
+            seed.into_par_iter()
+                .map(|s| get_loc(s, &maps))
+                .min()
+                .unwrap()
+        })
+        .min()
+        .unwrap();
 
     println!("{:?}", min);
+}
+
+fn get_loc(seed: usize, maps: &[Map]) -> usize {
+    let mut value = seed;
+    for map in maps {
+        value = map.locate(value);
+    }
+    value
 }
