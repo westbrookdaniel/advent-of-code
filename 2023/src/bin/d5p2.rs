@@ -1,5 +1,6 @@
 use rayon::prelude::*;
 
+#[derive(Debug)]
 struct Map {
     entries: Vec<(usize, usize, usize)>,
 }
@@ -51,7 +52,11 @@ fn main() {
             maps.push(Map {
                 entries: entries.clone(),
             });
+            entries.clear();
         }
+    });
+    maps.push(Map {
+        entries: entries.clone(),
     });
 
     let min = seeds
@@ -70,9 +75,5 @@ fn main() {
 }
 
 fn get_loc(seed: usize, maps: &[Map]) -> usize {
-    let mut value = seed;
-    for map in maps {
-        value = map.locate(value);
-    }
-    value
+    maps.iter().fold(seed, |acc, map| map.locate(acc))
 }
