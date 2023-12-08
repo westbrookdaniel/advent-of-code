@@ -26,19 +26,19 @@ fn main() {
         }
     });
 
-    let hands: i32 = hands
-        .iter()
-        .enumerate()
-        .map(|(i, (_, b, _))| (i as i32 + 1) * b)
-        .sum();
+    // let hands: i32 = hands
+    //     .iter()
+    //     .enumerate()
+    //     .map(|(i, (_, b, _))| (i as i32 + 1) * b)
+    //     .sum();
 
-    println!("{:?}", hands);
+    // println!("{:?}", hands);
 
-    // let hands = hands.iter().enumerate().collect::<Vec<_>>();
+    let hands = hands.iter().enumerate().collect::<Vec<_>>();
 
-    // for (i, (h, b, s)) in hands {
-    //     println!("{:?}", (i + 1, h.join(""), b, s));
-    // }
+    for (i, (h, b, s)) in hands {
+        println!("{:?}", (i + 1, h.join(""), b, s));
+    }
 }
 
 fn is_stronger(a: &[String], b: &[String]) -> bool {
