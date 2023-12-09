@@ -4,12 +4,12 @@ fn main() {
     let out = input
         .lines()
         .map(|line| {
-            let mut seq = line
+            let seq = line
                 .split(" ")
                 .map(|s| s.parse::<i32>().unwrap())
                 .collect::<Vec<_>>();
 
-            seq.reverse();
+            // seq.reverse();
 
             let mut seq = vec![seq];
 
