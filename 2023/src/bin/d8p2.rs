@@ -1,3 +1,4 @@
+use num::integer::lcm;
 use rayon::prelude::*;
 
 fn main() {
@@ -23,28 +24,35 @@ fn main() {
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
 
-    let (mut entries, exits) = tree.iter().fold((vec![], vec![]), |mut acc, (k, _)| {
+    let entries = tree.iter().fold(vec![], |mut acc, (k, _)| {
         if k.ends_with("A") {
-            let exit = k[..k.len() - 1].to_string() + "Z";
-            acc.0.push(k.to_string());
-            acc.1.push(exit);
+            acc.push(k.to_string());
         }
         acc
     });
 
-    let mut i = 0;
-    while entries.iter().enumerate().any(|(i, c)| exits[i] != *c) {
-        let instr = instrs[i % instrs.len()];
-        entries = entries
-            .par_iter()
-            .map(|c| match instr {
-                "L" => tree[c].0.clone(),
-                "R" => tree[c].1.clone(),
-                _ => panic!("Invalid instruction"),
-            })
-            .collect::<Vec<_>>();
-        i += 1;
-    }
+    let mins = entries
+        .par_iter()
+        .map(|entry| {
+            let mut i = 0;
+            let mut curr = entry.as_str();
+            let tree = tree.clone();
 
-    println!("{:?}", i);
+            while !curr.ends_with('Z') {
+                let instr = instrs[i % instrs.len()];
+                curr = match instr {
+                    "L" => tree[curr].0.as_str(),
+                    "R" => tree[curr].1.as_str(),
+                    _ => curr,
+                };
+                i += 1;
+            }
+
+            i
+        })
+        .collect::<Vec<_>>();
+
+    let min = mins.iter().fold(1, |acc, x| lcm(acc, *x));
+
+    println!("{:?}", min);
 }
