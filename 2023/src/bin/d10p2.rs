@@ -35,7 +35,28 @@ fn main() {
     }
 
     // sub S
-    // TODO
+    grid[start.1 as usize][start.0 as usize] = {
+        let dirs = entries
+            .iter()
+            .map(|(x, y)| {
+                let dx = x - start.0;
+                let dy = y - start.1;
+                (dx, dy)
+            })
+            .collect::<Vec<_>>();
+
+        match dirs.as_slice() {
+            [(0, 1), (1, 0)] => 'F',
+            [(0, 1), (-1, 0)] => '7',
+            [(0, -1), (1, 0)] => 'L',
+            [(0, -1), (-1, 0)] => 'J',
+            [(0, -1), (0, 1)] => '|',
+            [(0, 1), (0, -1)] => '|',
+            [(1, 0), (-1, 0)] => '-',
+            [(-1, 0), (1, 0)] => '-',
+            _ => panic!("unknown dirs"),
+        }
+    };
 
     // ray trace for I (in) and O (out)
     for y in 0..grid.len() {
@@ -66,19 +87,19 @@ fn main() {
         }
     }
 
-    for line in grid.iter() {
-        for c in line.iter() {
-            print!("{}", c);
-        }
-        println!();
-    }
+    // for line in grid.iter() {
+    //     for c in line.iter() {
+    //         print!("{}", c);
+    //     }
+    //     println!();
+    // }
 
     // count I in grid
     let out = grid.iter().fold(0, |acc, line| {
         acc + line.iter().filter(|c| **c == 'I').count()
     });
 
-    println!("out: {}", out);
+    println!("{}", out);
 }
 
 fn find_next_pos(input: &Vec<Vec<char>>, prev: (i32, i32), curr: (i32, i32)) -> Vec<(i32, i32)> {
