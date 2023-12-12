@@ -34,69 +34,37 @@ fn main() {
         grid[*y as usize][*x as usize] = prev;
     }
 
-    let mut flip_inside = false;
-    let mut last_turn = None;
-    for (x, y) in fp.path.iter() {
-        let lt_dirs = get_lt_dirs_for_char(grid[*y as usize][*x as usize]);
-        let rb_dirs = get_rb_dirs_for_char(grid[*y as usize][*x as usize]);
+    // sub S
+    // TODO
 
-        let c = grid[*y as usize][*x as usize];
-        match (last_turn, c) {
-            (Some('F'), '7') => {
-                last_turn = Some(c);
-                flip_inside = !flip_inside
-            }
-            (Some('L'), 'J') => {
-                last_turn = Some(c);
-                flip_inside = !flip_inside
-            }
-            (Some('7'), 'J') => {
-                last_turn = Some(c);
-                flip_inside = !flip_inside
-            }
-            (Some('F'), 'L') => {
-                last_turn = Some(c);
-                flip_inside = !flip_inside
-            }
-            _ => (),
-        };
-
-        let inside_dirs = if flip_inside {
-            lt_dirs.clone()
-        } else {
-            rb_dirs.clone()
-        };
-        let outside_dirs = if flip_inside {
-            rb_dirs.clone()
-        } else {
-            lt_dirs.clone()
-        };
-
-        for d in inside_dirs {
-            let inside = (*x as i32 + d.0, *y as i32 + d.1);
-            let inside = (inside.0 as usize, inside.1 as usize);
-            if inside.0 < grid[0].len() && inside.1 < grid.len() {
-                fill_with(&mut grid, inside, 'I');
+    // ray trace for I (in) and O (out)
+    for y in 0..grid.len() {
+        let mut is_out = true;
+        let mut last_vert = None;
+        for x in 0..grid[0].len() {
+            match grid[y][x] {
+                '.' => {
+                    grid[y][x] = if is_out { 'O' } else { 'I' };
+                }
+                '|' => {
+                    is_out = !is_out;
+                }
+                '7' => {
+                    if last_vert == Some('L') {
+                        is_out = !is_out;
+                    }
+                }
+                'J' => {
+                    if last_vert == Some('F') {
+                        is_out = !is_out;
+                    }
+                }
+                'L' => last_vert = Some('L'),
+                'F' => last_vert = Some('F'),
+                _ => (),
             }
         }
-
-        for d in outside_dirs {
-            let outside = (*x as i32 + d.0, *y as i32 + d.1);
-            let outside = (outside.0 as usize, outside.1 as usize);
-            if outside.0 < grid[0].len() && outside.1 < grid.len() {
-                fill_with(&mut grid, outside, 'O');
-            }
-        }
-
-        // for clarity
-        grid[*y as usize][*x as usize] = ' ';
     }
-
-    let out = grid.iter().fold(0, |acc, line| {
-        acc + line.iter().filter(|c| **c == 'I').count()
-    });
-
-    println!("{}", out);
 
     for line in grid.iter() {
         for c in line.iter() {
@@ -104,6 +72,13 @@ fn main() {
         }
         println!();
     }
+
+    // count I in grid
+    let out = grid.iter().fold(0, |acc, line| {
+        acc + line.iter().filter(|c| **c == 'I').count()
+    });
+
+    println!("out: {}", out);
 }
 
 fn find_next_pos(input: &Vec<Vec<char>>, prev: (i32, i32), curr: (i32, i32)) -> Vec<(i32, i32)> {
@@ -118,30 +93,6 @@ fn find_next_pos(input: &Vec<Vec<char>>, prev: (i32, i32), curr: (i32, i32)) -> 
         .filter(|pos| **pos != prev)
         .map(|pos| *pos)
         .collect()
-}
-
-fn get_lt_dirs_for_char(char: char) -> Vec<(i32, i32)> {
-    match char {
-        '|' => vec![(-1, 0)],
-        '-' => vec![(0, -1)],
-        'L' => vec![(-1, 0), (0, 1)],
-        'J' => vec![],
-        '7' => vec![],
-        'F' => vec![(-1, 0), (0, -1)],
-        _ => vec![],
-    }
-}
-
-fn get_rb_dirs_for_char(char: char) -> Vec<(i32, i32)> {
-    match char {
-        '|' => vec![(1, 0)],
-        '-' => vec![(0, 1)],
-        'L' => vec![],
-        'J' => vec![(1, 0), (0, 1)],
-        '7' => vec![(1, 0), (0, -1)],
-        'F' => vec![],
-        _ => vec![],
-    }
 }
 
 fn get_dirs_for_char(char: char) -> Vec<(i32, i32)> {
@@ -274,40 +225,4 @@ fn follow_path(input: &Vec<Vec<char>>, prev: (i32, i32), start: (i32, i32)) -> F
     }
 
     fw
-}
-
-fn fill_with(grid: &mut Vec<Vec<char>>, point: (usize, usize), char: char) {
-    let mut queue = vec![point];
-    let mut i = 0;
-
-    if grid[point.1][point.0] != '.' {
-        return;
-    }
-
-    grid[point.1][point.0] = char;
-
-    while i < queue.len() {
-        let item = queue[i];
-        let item = (item.0 as i32, item.1 as i32);
-        let dirs: Vec<(i32, i32)> = vec![(0, 1), (0, -1), (1, 0), (-1, 0)];
-        let next = dirs
-            .iter()
-            .map(|(dx, dy)| (item.0 + dx, item.1 + dy))
-            .collect::<Vec<_>>();
-        for pos in next.iter() {
-            if pos.1 < 0 || pos.0 < 0 {
-                continue;
-            }
-            if pos.1 >= grid.len() as i32 || pos.0 >= grid[0].len() as i32 {
-                continue;
-            }
-
-            if grid[pos.1 as usize][pos.0 as usize] == '.' {
-                grid[pos.1 as usize][pos.0 as usize] = char;
-                let pos = (pos.0 as usize, pos.1 as usize);
-                queue.push(pos);
-            }
-        }
-        i += 1;
-    }
 }
