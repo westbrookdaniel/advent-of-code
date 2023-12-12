@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rayon::prelude::*;
 
 fn main() {
@@ -23,36 +22,12 @@ fn find_arrangments(line: &str) -> i32 {
         .map(|g| g.parse::<i32>().unwrap())
         .collect::<Vec<_>>();
 
-    let unknown_i = data
-        .trim()
-        .split("")
-        .enumerate()
-        .filter(|(_, c)| c == &"?")
-        .map(|(i, _)| i - 1)
-        .collect::<Vec<_>>();
-
-    let total = groups.iter().sum::<i32>();
-    let total_hash = data.trim().matches("#").count() as i32;
-    let hash_to_add = total - total_hash;
-
-    let perms = unknown_i
-        .iter()
-        .enumerate()
-        .map(|(i, _)| if hash_to_add > i as i32 { "#" } else { "." })
-        .permutations(unknown_i.len())
-        .unique()
-        .collect::<Vec<_>>();
+    let perms = unique_perms(&data);
 
     // for each way unknown_i array can be sorted
     let n = perms
         .par_iter()
-        .map(|perm| {
-            let mut data = data.to_string();
-            for (i, p) in perm.iter().enumerate() {
-                // replace at index in str
-                data.replace_range(unknown_i[i]..unknown_i[i] + 1, p);
-            }
-
+        .map(|data| {
             if !validate(&data, &groups) {
                 return 0;
             }
@@ -72,4 +47,24 @@ fn validate(data: &str, groups: &[i32]) -> bool {
         .collect::<Vec<_>>();
 
     data_groups == *groups
+}
+
+fn unique_perms(data: &str) -> Vec<String> {
+    let mut perms = vec![data.to_string()];
+    for i in 0..data.len() {
+        let mut new_perms = vec![];
+        for mut perm in perms.clone() {
+            if perm.chars().nth(i).unwrap() == '?' {
+                perm.replace_range(i..i + 1, "#");
+                new_perms.push(perm.clone());
+                perm.replace_range(i..i + 1, ".");
+                new_perms.push(perm.clone());
+            } else {
+                new_perms.push(perm.clone());
+            }
+        }
+        perms = new_perms;
+    }
+
+    perms
 }
