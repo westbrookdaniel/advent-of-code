@@ -1,31 +1,29 @@
 use memoize::memoize;
 
 fn main() {
-    let input = std::fs::read_to_string("src/input/d14p1.txt").unwrap();
+    let str_grid = std::fs::read_to_string("src/input/d14p1.txt").unwrap();
 
-    let grid = input
+    let mut str_grid = str_grid;
+    for _ in 0..1000 {
+        str_grid = cycle(str_grid);
+    }
+
+    let grid = str_grid
         .lines()
         .map(|line| line.trim().chars().collect::<Vec<_>>())
         .filter(|line| line.len() > 0)
         .collect::<Vec<_>>();
 
-    let mut grid = grid;
-    for _ in 0..1000 {
-        grid = cycle(grid);
-    }
-
     println!("{}", calc_weight(grid));
 }
 
 #[memoize]
-fn cycle(grid: Vec<Vec<char>>) -> Vec<Vec<char>> {
-    let grid = shift_up(grid);
-
-    let grid = rotate_right(grid);
-
-    let grid = shift_up(grid);
-
-    let grid = rotate_right(grid);
+fn cycle(str_grid: String) -> String {
+    let grid = str_grid
+        .lines()
+        .map(|line| line.trim().chars().collect::<Vec<_>>())
+        .filter(|line| line.len() > 0)
+        .collect::<Vec<_>>();
 
     let grid = shift_up(grid);
 
@@ -35,10 +33,20 @@ fn cycle(grid: Vec<Vec<char>>) -> Vec<Vec<char>> {
 
     let grid = rotate_right(grid);
 
-    grid
+    let grid = shift_up(grid);
+
+    let grid = rotate_right(grid);
+
+    let grid = shift_up(grid);
+
+    let grid = rotate_right(grid);
+
+    grid.iter()
+        .map(|line| line.iter().collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
-#[memoize]
 fn shift_up(grid: Vec<Vec<char>>) -> Vec<Vec<char>> {
     let grid = (0..grid[0].len())
         .map(|i| join_x(&grid, i))
@@ -48,7 +56,6 @@ fn shift_up(grid: Vec<Vec<char>>) -> Vec<Vec<char>> {
     rotate_right(grid)
 }
 
-#[memoize]
 fn rotate_right(grid: Vec<Vec<char>>) -> Vec<Vec<char>> {
     let mut new_grid = vec![vec!['.'; grid.len()]; grid[0].len()];
     for i in 0..grid.len() {
@@ -66,7 +73,6 @@ fn join_x(grid: &Vec<Vec<char>>, x: usize) -> String {
         .join("")
 }
 
-#[memoize]
 fn shift_rock_line(line: String) -> String {
     // println!("{:?}", line.split("#").collect::<Vec<_>>());
     line.split("#")
@@ -87,7 +93,6 @@ fn shift_rock_line(line: String) -> String {
         .join("#")
 }
 
-#[memoize]
 fn calc_weight(grid: Vec<Vec<char>>) -> usize {
     let lines = (0..grid[0].len())
         .map(|i| join_x(&grid, i))
