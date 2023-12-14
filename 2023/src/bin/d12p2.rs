@@ -1,5 +1,5 @@
+use cached::proc_macro::cached;
 use rayon::prelude::*;
-use memoize::memoize;
 
 fn main() {
     let input = std::fs::read_to_string("src/input/d12p1.txt").unwrap();
@@ -55,7 +55,7 @@ fn find_arrangments(line: &str) -> u64 {
     count_valid(data, groups, 0)
 }
 
-#[memoize]
+#[cached]
 fn count_valid(data: Vec<char>, groups: Vec<u64>, n: u64) -> u64 {
     if data.len() == 0 {
         let is_perm = groups.len() == 1 && n == groups[0];

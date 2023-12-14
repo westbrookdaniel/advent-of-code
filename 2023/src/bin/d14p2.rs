@@ -1,4 +1,4 @@
-use memoize::memoize;
+use cached::proc_macro::cached;
 
 fn main() {
     let str_grid = std::fs::read_to_string("src/input/d14p1.txt").unwrap();
@@ -17,7 +17,7 @@ fn main() {
     println!("{}", calc_weight(grid));
 }
 
-#[memoize]
+#[cached]
 fn cycle(str_grid: String) -> String {
     let grid = str_grid
         .lines()
