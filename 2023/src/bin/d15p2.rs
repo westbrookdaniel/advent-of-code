@@ -11,23 +11,21 @@ fn main() {
         let hash = hash(label);
         let lens_or_empty = input.next().unwrap();
 
+        let b = boxes.entry(hash).or_insert(Vec::new());
+        let found = b.iter().position(|(l, _)| *l == label);
+
         match lens_or_empty {
             "" => {
-                let b = boxes.entry(hash).or_insert(Vec::new());
-
-                let found = b.iter().position(|(l, _)| *l == label);
                 if let Some(i) = found {
                     b.remove(i);
                 }
             }
             _ => {
-                let b = boxes.entry(hash).or_insert(Vec::new());
-
-                let found = b.iter().position(|(l, _)| *l == label);
+                let n = lens_or_empty.parse().unwrap();
                 if let Some(i) = found {
-                    let _ = std::mem::replace(&mut b[i], (label, lens_or_empty.parse().unwrap()));
+                    let _ = std::mem::replace(&mut b[i], (label, n));
                 } else {
-                    b.push((label, lens_or_empty.parse().unwrap()));
+                    b.push((label, n));
                 }
             }
         };
