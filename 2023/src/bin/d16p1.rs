@@ -1,18 +1,9 @@
-use cached::proc_macro::cached;
-
 #[derive(Clone, Hash, Eq, PartialEq)]
 struct Beam {
     pos: (isize, isize),
     dir: Dir,
-    prev: Vec<Beam>,
-}
-
-impl Beam {
-    fn from(beam: &Beam, pos: (isize, isize), dir: Dir) -> Beam {
-        let mut prev = beam.prev.clone();
-        prev.push(beam.clone());
-        Beam { pos, dir, prev }
-    }
+    energised: Vec<Vec<char>>,
+    complete: bool,
 }
 
 #[derive(Clone, Copy, Hash, Eq, PartialEq)]
@@ -32,124 +23,114 @@ fn main() {
         .map(|line| line.trim().chars().collect::<Vec<char>>())
         .collect::<Vec<Vec<char>>>();
 
-    let mut energised = grid.clone();
-    move_beams(
-        Beam {
-            pos: (0, 0),
-            dir: Dir::Right,
-            prev: vec![],
-        },
-        &grid,
-        &mut energised,
-    );
+    let mut beams = vec![Beam {
+        pos: (0, 0),
+        dir: Dir::Right,
+        energised: grid.clone(),
+        complete: false,
+    }];
 
-    for line in &energised {
-        for c in line {
-            print!("{}", c);
-        }
-        println!();
-    }
-    println!();
-}
+    while beams.iter().any(|beam| !beam.complete) {
+        for i in 0..beams.len() {
+            let mut beam = beams[i].clone();
 
-fn move_beams(beam: Beam, grid: &Vec<Vec<char>>, energised: &mut Vec<Vec<char>>) {
-    let char = get_char(grid, beam.pos);
-    for line in energised.clone() {
-        for c in line {
-            print!("{}", c);
-        }
-        println!();
-    }
-    println!();
+            let char = get_char(&grid, beam.pos);
 
-    if let Some(char) = char {
-        apply(energised, beam.pos);
-        match char {
-            '\\' => {
-                if check_loop(&beam) {
-                    return;
+            if let Some(char) = char {
+                if detect_loop(&beam) {
+                    beam.complete = true;
                 }
 
-                let dir = match beam.dir {
-                    Dir::Up => Dir::Left,
-                    Dir::Down => Dir::Right,
-                    Dir::Left => Dir::Up,
-                    Dir::Right => Dir::Down,
+                energise(&mut beam);
+                let mut next_dirs = match char {
+                    '/' => match beam.dir {
+                        Dir::Up => vec![Dir::Right],
+                        Dir::Down => vec![Dir::Left],
+                        Dir::Left => vec![Dir::Down],
+                        Dir::Right => vec![Dir::Up],
+                    },
+                    '\\' => match beam.dir {
+                        Dir::Up => vec![Dir::Left],
+                        Dir::Down => vec![Dir::Right],
+                        Dir::Left => vec![Dir::Up],
+                        Dir::Right => vec![Dir::Down],
+                    },
+                    '|' => match beam.dir {
+                        Dir::Up => vec![Dir::Up],
+                        Dir::Down => vec![Dir::Down],
+                        Dir::Left => vec![Dir::Up, Dir::Down],
+                        Dir::Right => vec![Dir::Up, Dir::Down],
+                    },
+                    '-' => match beam.dir {
+                        Dir::Up => vec![Dir::Left, Dir::Right],
+                        Dir::Down => vec![Dir::Left, Dir::Right],
+                        Dir::Left => vec![Dir::Left],
+                        Dir::Right => vec![Dir::Right],
+                    },
+                    _ => vec![beam.dir],
                 };
-                move_beams(Beam::from(&beam, add(beam.pos, dir), dir), grid, energised);
-            }
-            '/' => {
-                if check_loop(&beam) {
-                    return;
-                }
 
-                let dir = match beam.dir {
-                    Dir::Up => Dir::Right,
-                    Dir::Down => Dir::Left,
-                    Dir::Left => Dir::Down,
-                    Dir::Right => Dir::Up,
-                };
-                move_beams(Beam::from(&beam, add(beam.pos, dir), dir), grid, energised);
-            }
-            '|' => match beam.dir {
-                Dir::Left | Dir::Right => {
-                    if check_loop(&beam) {
-                        return;
+                let dir = next_dirs.pop().unwrap();
+
+                if next_dirs.len() > 0 {
+                    for dir in next_dirs {
+                        let mut new_beam = beam.clone();
+                        new_beam.dir = dir;
+                        new_beam.pos = add(beam.pos, dir);
+                        beams.push(new_beam);
                     }
+                }
 
-                    move_beams(
-                        Beam::from(&beam, add(beam.pos, Dir::Up), Dir::Up),
-                        grid,
-                        energised,
-                    );
-                    move_beams(
-                        Beam::from(&beam, add(beam.pos, Dir::Down), Dir::Down),
-                        grid,
-                        energised,
-                    );
-                }
-                _ => {
-                    move_beams(
-                        Beam::from(&beam, add(beam.pos, beam.dir), beam.dir),
-                        grid,
-                        energised,
-                    );
-                }
-            },
-            '-' => match beam.dir {
-                Dir::Up | Dir::Down => {
-                    if check_loop(&beam) {
-                        return;
-                    }
-
-                    move_beams(
-                        Beam::from(&beam, add(beam.pos, Dir::Left), Dir::Left),
-                        grid,
-                        energised,
-                    );
-                    move_beams(
-                        Beam::from(&beam, add(beam.pos, Dir::Right), Dir::Right),
-                        grid,
-                        energised,
-                    );
-                }
-                _ => {
-                    move_beams(
-                        Beam::from(&beam, add(beam.pos, beam.dir), beam.dir),
-                        grid,
-                        energised,
-                    );
-                }
-            },
-            _ => {
-                move_beams(
-                    Beam::from(&beam, add(beam.pos, beam.dir), beam.dir),
-                    grid,
-                    energised,
-                );
+                beam.dir = dir;
+                beam.pos = add(beam.pos, dir);
+            } else {
+                beam.complete = true;
             }
+
+            beams[i] = beam;
         }
     }
+
+    println!("{}", beams.len());
+
+    let combined = beams
+        .iter()
+        .fold(vec![], |mut acc, beam| {
+            if acc.len() == 0 {
+                acc = beam.energised.clone();
+            } else {
+                for (y, row) in beam.energised.iter().enumerate() {
+                    for (x, char) in row.iter().enumerate() {
+                        match char {
+                            '^' | 'v' | '<' | '>' => {
+                                acc[y][x] = *char;
+                            }
+                            _ => {}
+                        };
+                    }
+                }
+            }
+            acc
+        })
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|char| match char {
+                    '^' | 'v' | '<' | '>' => '#',
+                    _ => *char,
+                })
+                .collect::<Vec<char>>()
+        })
+        // .collect::<Vec<Vec<char>>>();
+        .fold(0, |acc, row| {
+            acc + row.iter().filter(|char| **char == '#').count()
+        });
+
+    // for row in combined {
+    //     println!("{}", row.iter().collect::<String>());
+    // }
+
+    println!("{}", combined)
 }
 
 fn dir(dir: Dir) -> (isize, isize) {
@@ -173,19 +154,23 @@ fn get_char(grid: &Vec<Vec<char>>, pos: (isize, isize)) -> Option<char> {
     Some(*c)
 }
 
-fn apply(grid: &mut Vec<Vec<char>>, pos: (isize, isize)) {
-    let pos = (pos.0 as usize, pos.1 as usize);
-    grid[pos.1][pos.0] = '#';
+fn energise(beam: &mut Beam) {
+    let pos = (beam.pos.0 as usize, beam.pos.1 as usize);
+    beam.energised[pos.1][pos.0] = char_dir(beam.dir);
 }
 
-fn check_loop(beam: &Beam) -> bool {
-    // detect if a set of positions repeats
-    let mut seen = vec![];
-    for pos in beam.prev.iter() {
-        if seen.contains(&pos) {
-            return true;
-        }
-        seen.push(pos);
+fn char_dir(dir: Dir) -> char {
+    match dir {
+        Dir::Up => '^',
+        Dir::Down => 'v',
+        Dir::Left => '<',
+        Dir::Right => '>',
     }
-    false
+}
+
+fn detect_loop(beam: &Beam) -> bool {
+    let pos = (beam.pos.0 as usize, beam.pos.1 as usize);
+    let dir = char_dir(beam.dir);
+    let char = beam.energised[pos.1][pos.0];
+    char == dir
 }
