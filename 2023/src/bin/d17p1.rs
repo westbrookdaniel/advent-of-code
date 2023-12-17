@@ -1,4 +1,4 @@
-use pathfinding::prelude::astar;
+use pathfinding::directed::dijkstra::dijkstra;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Pos(i32, i32, Dir, i32);
@@ -17,10 +17,6 @@ fn get_char(grid: &Vec<Vec<char>>, pos: (i32, i32)) -> Option<char> {
 }
 
 impl Pos {
-    fn distance(&self, other: (i32, i32)) -> u32 {
-        (self.0.abs_diff(other.0) + self.1.abs_diff(other.1)) as u32
-    }
-
     fn loss(&self, grid: &Vec<Vec<char>>) -> u32 {
         let char = get_char(grid, (self.0, self.1));
 
@@ -31,7 +27,7 @@ impl Pos {
         }
     }
 
-    fn successors(&self) -> Vec<(Pos, u32)> {
+    fn successors(&self, grid: &Vec<Vec<char>>) -> Vec<(Pos, u32)> {
         let &Pos(x, y, dir, dist) = self;
 
         if dist == 3 {
@@ -51,7 +47,10 @@ impl Pos {
                     Dir::Left => Pos(x - 1, y, dir, dist + 1),
                     Dir::Right => Pos(x + 1, y, dir, dist + 1),
                 })
-                .map(|p| (p, 1))
+                .map(|p| {
+                    let l = p.loss(&grid);
+                    (p, l)
+                })
                 .collect();
         } else {
             let possible_dirs = match dir {
@@ -69,7 +68,10 @@ impl Pos {
                     Dir::Left => Pos(x - 1, y, dir, dist + 1),
                     Dir::Right => Pos(x + 1, y, dir, dist + 1),
                 })
-                .map(|p| (p, 1))
+                .map(|p| {
+                    let l = p.loss(&grid);
+                    (p, l)
+                })
                 .collect();
         };
     }
@@ -90,10 +92,9 @@ fn main() {
 
     let start_weight = Pos(0, 0, Dir::Right, 0).loss(&grid);
 
-    let result = astar(
+    let result = dijkstra(
         &Pos(0, 0, Dir::Right, 0),
-        |p| p.successors(),
-        |p| p.distance(goal) + p.loss(&grid) * 3,
+        |p| p.successors(&grid),
         |p| p.0 == goal.0 && p.1 == goal.1,
     )
     .unwrap();
