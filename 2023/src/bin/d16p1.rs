@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+
 #[derive(Clone, Hash, Eq, PartialEq)]
 struct Beam {
     pos: (isize, isize),
     dir: Dir,
-    energised: Vec<Vec<char>>,
     complete: bool,
 }
 
@@ -23,10 +24,11 @@ fn main() {
         .map(|line| line.trim().chars().collect::<Vec<char>>())
         .collect::<Vec<Vec<char>>>();
 
+    let mut energised: HashMap<(isize, isize), Vec<Dir>> = HashMap::new();
+
     let mut beams = vec![Beam {
         pos: (0, 0),
         dir: Dir::Right,
-        energised: grid.clone(),
         complete: false,
     }];
 
@@ -34,17 +36,23 @@ fn main() {
         for i in 0..beams.len() {
             let mut beam = beams[i].clone();
 
+            if beam.complete {
+                continue;
+            }
+
             let char = get_char(&grid, beam.pos);
 
             if let Some(char) = char {
-                if detect_loop(&beam) {
+                if detect_loop(&beam, &energised) {
                     beam.complete = true;
                 }
 
-                energise(&mut beam);
+                energise(&beam, &mut energised);
                 let mut next_dirs = match char {
                     '/' => match beam.dir {
-                        Dir::Up => vec![Dir::Right],
+                        Dir::Up => {
+                            vec![Dir::Right]
+                        }
                         Dir::Down => vec![Dir::Left],
                         Dir::Left => vec![Dir::Down],
                         Dir::Right => vec![Dir::Up],
@@ -91,46 +99,7 @@ fn main() {
         }
     }
 
-    println!("{}", beams.len());
-
-    let combined = beams
-        .iter()
-        .fold(vec![], |mut acc, beam| {
-            if acc.len() == 0 {
-                acc = beam.energised.clone();
-            } else {
-                for (y, row) in beam.energised.iter().enumerate() {
-                    for (x, char) in row.iter().enumerate() {
-                        match char {
-                            '^' | 'v' | '<' | '>' => {
-                                acc[y][x] = *char;
-                            }
-                            _ => {}
-                        };
-                    }
-                }
-            }
-            acc
-        })
-        .iter()
-        .map(|row| {
-            row.iter()
-                .map(|char| match char {
-                    '^' | 'v' | '<' | '>' => '#',
-                    _ => *char,
-                })
-                .collect::<Vec<char>>()
-        })
-        // .collect::<Vec<Vec<char>>>();
-        .fold(0, |acc, row| {
-            acc + row.iter().filter(|char| **char == '#').count()
-        });
-
-    // for row in combined {
-    //     println!("{}", row.iter().collect::<String>());
-    // }
-
-    println!("{}", combined)
+    println!("{}", energised.len());
 }
 
 fn dir(dir: Dir) -> (isize, isize) {
@@ -154,23 +123,21 @@ fn get_char(grid: &Vec<Vec<char>>, pos: (isize, isize)) -> Option<char> {
     Some(*c)
 }
 
-fn energise(beam: &mut Beam) {
-    let pos = (beam.pos.0 as usize, beam.pos.1 as usize);
-    beam.energised[pos.1][pos.0] = char_dir(beam.dir);
-}
-
-fn char_dir(dir: Dir) -> char {
-    match dir {
-        Dir::Up => '^',
-        Dir::Down => 'v',
-        Dir::Left => '<',
-        Dir::Right => '>',
+fn energise(beam: &Beam, energised: &mut HashMap<(isize, isize), Vec<Dir>>) {
+    if let Some(_) = energised.get(&beam.pos) {
+        let dirs = energised.get_mut(&beam.pos).unwrap();
+        if !dirs.contains(&beam.dir) {
+            dirs.push(beam.dir);
+        }
+    } else {
+        energised.insert(beam.pos, vec![beam.dir]);
     }
 }
 
-fn detect_loop(beam: &Beam) -> bool {
-    let pos = (beam.pos.0 as usize, beam.pos.1 as usize);
-    let dir = char_dir(beam.dir);
-    let char = beam.energised[pos.1][pos.0];
-    char == dir
+fn detect_loop(beam: &Beam, energised: &HashMap<(isize, isize), Vec<Dir>>) -> bool {
+    if let Some(dirs) = energised.get(&beam.pos) {
+        dirs.contains(&beam.dir)
+    } else {
+        false
+    }
 }
