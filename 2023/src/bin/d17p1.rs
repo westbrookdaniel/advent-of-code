@@ -18,7 +18,7 @@ impl Pos {
         if let Some(dig) = dig {
             *dig
         } else {
-            1000
+            10000000
         }
     }
 
@@ -89,8 +89,8 @@ fn main() {
 }
 
 fn print_journey(pos: &Vec<Pos>, grid: &Matrix<u32>) {
-    for y in 0..grid.rows {
-        for x in 0..grid.columns {
+    for x in 0..grid.rows {
+        for y in 0..grid.columns {
             let mut found = false;
             for p in pos {
                 if p.0 == x as i32 && p.1 == y as i32 {
