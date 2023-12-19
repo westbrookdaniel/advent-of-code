@@ -1,8 +1,4 @@
-use cached::proc_macro::cached;
-use linya::{Bar, Progress};
 use rayon::prelude::*;
-use std::collections::HashMap;
-use std::sync::Mutex;
 
 fn main() {
     let input = std::fs::read_to_string("src/input/d18p1.txt").unwrap();
@@ -23,7 +19,6 @@ fn main() {
                 '0' => Dir::Right,
                 _ => panic!("Invalid direction"),
             };
-            println!("{} {}", dir, n);
             (dir, n)
         })
         // .map(|line| {
@@ -41,39 +36,34 @@ fn main() {
         .collect::<Vec<(Dir, usize)>>();
 
     // Walk steps to build points
-    let mut rows: HashMap<i32, Vec<i32>> = HashMap::new();
+    let mut points: Vec<(i32, i32)> = vec![];
+    let mut total_dist = 0;
     let mut x = 0;
     let mut y = 0;
     for step in steps {
         let d = pos_from_dir(step.0);
-        for _ in 0..step.1 {
-            x += d.0;
-            y += d.1;
-            rows.entry(y).or_insert(vec![]).push(x);
-        }
+        x += d.0 * step.1 as i32;
+        y += d.1 * step.1 as i32;
+        points.push((x, y));
+        total_dist += step.1;
     }
 
-    let values = rows.values().flatten().collect::<Vec<&i32>>();
-    let largest_x = *values.iter().max().unwrap();
-    let smallest_x = *values.iter().min().unwrap();
-    let width = (largest_x.clone() - smallest_x.clone() + 1) as usize;
-
-    let progress = Mutex::new(Progress::new());
-    let bar: Bar = progress.lock().unwrap().bar(rows.len(), format!("Loading"));
-
-    // find all the inside points
-    let out = rows
+    // shoelace formula to get the area of polygon
+    let area = points
         .par_iter()
-        .map(|(_, row)| {
-            let n = calc_row(row.clone(), smallest_x.clone(), width);
-
-            progress.lock().unwrap().inc_and_draw(&bar, 1);
-
-            n
+        .enumerate()
+        .map(|(i, p)| {
+            let j = (i + 1) % points.len();
+            p.0 as i64 * points[j].1 as i64 - p.1 as i64 * points[j].0 as i64
         })
-        .sum::<usize>();
+        .sum::<i64>()
+        .abs()
+        / 2;
 
-    println!("{}", out);
+    // pick's therom to get full area
+    let area = area as f64 + 0.5 * total_dist as f64 - 1.0;
+
+    println!("{}", area + 2.0);
 }
 
 fn pos_from_dir(dir: Dir) -> (i32, i32) {
@@ -91,22 +81,4 @@ enum Dir {
     Down,
     Left,
     Right,
-}
-
-#[cached]
-fn calc_row(row: Vec<i32>, smallest_x: i32, width: usize) -> usize {
-    let mut str_row = String::from_utf8(vec![' ' as u8; width]).unwrap();
-    for x in row {
-        let x = x - smallest_x;
-        str_row.replace_range(x as usize..x as usize + 1, "#");
-    }
-
-    let hash_count = str_row.matches('#').count();
-
-    // n = 4 if row_str = .#..\#/..#.
-    // TODO calc dirs of corners
-    // then can determine inside n based on it
-    let n = 0;
-
-    n + hash_count
 }
