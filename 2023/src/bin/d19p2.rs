@@ -146,12 +146,19 @@ impl RangePart {
     }
 
     fn merge(&self, other: &RangePart) -> RangePart {
-        RangePart {
-            x: self.x.start.min(other.x.start)..self.x.end.max(other.x.end),
-            m: self.m.start.min(other.m.start)..self.m.end.max(other.m.end),
-            a: self.a.start.min(other.a.start)..self.a.end.max(other.a.end),
-            s: self.s.start.min(other.s.start)..self.s.end.max(other.s.end),
-        }
+        println!("self {:?}", self);
+        println!("other {:?}", other);
+        let out = RangePart {
+            x: self.x.start..other.x.end,
+            m: self.m.start..other.m.end,
+            a: self.a.start..other.a.end,
+            s: self.s.start..other.s.end,
+        };
+
+        println!("out {:?}", out);
+        println!();
+
+        out
     }
 }
 
@@ -204,16 +211,6 @@ fn main() {
 
     let n = part.total_possible();
 
-    let total = RangePart {
-        x: 1..4000,
-        m: 1..4000,
-        a: 1..4000,
-        s: 1..4000,
-    }
-    .total_possible();
-
-    let n = total - n;
-
     // let _ = n_of_part(&workflows, ends[1]);
 
     println!("{}", n);
@@ -221,6 +218,7 @@ fn main() {
     //
     // 1176306889923954 first
     // 255744095984001 merging parts
+    // 26676912540141 upate merging?
 }
 
 // recursive find n of parts with ranges
