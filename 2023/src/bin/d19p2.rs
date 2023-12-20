@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 #[derive(Debug)]
 struct Workflow {
@@ -107,58 +107,31 @@ enum Op {
 
 #[derive(Debug, Clone)]
 struct RangePart {
-    x: Range<u32>,
-    m: Range<u32>,
-    a: Range<u32>,
-    s: Range<u32>,
+    x: RangeInclusive<u32>,
+    m: RangeInclusive<u32>,
+    a: RangeInclusive<u32>,
+    s: RangeInclusive<u32>,
 }
 
 impl RangePart {
-    fn get(&self, s: &String) -> Range<u32> {
-        let s = s.trim();
-        match s {
-            "x" => self.x.clone(),
-            "m" => self.m.clone(),
-            "a" => self.a.clone(),
-            "s" => self.s.clone(),
-            _ => panic!("Unknown part"),
+    fn get(&self, test: String) -> &RangeInclusive<u32> {
+        match test.as_str() {
+            "x" => &self.x,
+            "m" => &self.m,
+            "a" => &self.a,
+            "s" => &self.s,
+            _ => panic!("unknown test"),
         }
     }
 
-    fn set(&mut self, s: &String, r: Range<u32>) {
-        let s = s.trim();
-        match s {
-            "x" => self.x = r,
-            "m" => self.m = r,
-            "a" => self.a = r,
-            "s" => self.s = r,
-            _ => panic!("Unknown part"),
+    fn set(&mut self, test: String, range: RangeInclusive<u32>) {
+        match test.as_str() {
+            "x" => self.x = range,
+            "m" => self.m = range,
+            "a" => self.a = range,
+            "s" => self.s = range,
+            _ => panic!("unknown test"),
         }
-    }
-
-    fn total_possible(&self) -> u64 {
-        let x = self.x.end - self.x.start;
-        let m = self.m.end - self.m.start;
-        let a = self.a.end - self.a.start;
-        let s = self.s.end - self.s.start;
-
-        x as u64 * m as u64 * a as u64 * s as u64
-    }
-
-    fn merge(&self, other: &RangePart) -> RangePart {
-        println!("self {:?}", self);
-        println!("other {:?}", other);
-        let out = RangePart {
-            x: self.x.start..other.x.end,
-            m: self.m.start..other.m.end,
-            a: self.a.start..other.a.end,
-            s: self.s.start..other.s.end,
-        };
-
-        println!("out {:?}", out);
-        println!();
-
-        out
     }
 }
 
@@ -173,47 +146,17 @@ fn main() {
         .map(Workflow::from)
         .collect::<Vec<_>>();
 
-    // find all parts that have Outcome::Accept or ConditionToOutcome with Outcome::Accept
-    // and the indexes of the part
-    let mut ends = vec![];
-    for (i, workflow) in workflows.iter().enumerate() {
-        for (j, rule) in workflow.rules.iter().enumerate() {
-            match rule {
-                Rule::Outcome(Outcome::Accept) => ends.push((i, j)),
-                Rule::ConditionToOutcome {
-                    outcome: Outcome::Accept,
-                    test: _,
-                    op: _,
-                    value: _,
-                } => ends.push((i, j)),
-                _ => {}
-            }
-        }
-    }
+    let range_part = RangePart {
+        x: 1..=4000,
+        m: 1..=4000,
+        a: 1..=4000,
+        s: 1..=4000,
+    };
 
     // work from ends to find n of parts that lead to an Outcome::Accept
-    let parts = ends
-        .iter()
-        .map(|end| range_for_part(&workflows, *end))
-        .collect::<Vec<_>>();
+    let parts = process(&workflows, range_part, "in");
 
-    for o in &parts {
-        println!("{:?}", o);
-    }
-    println!();
-
-    let mut part = parts[0].clone();
-    for p in parts {
-        part = part.merge(&p);
-    }
-
-    println!("{:?}", part);
-
-    let n = part.total_possible();
-
-    // let _ = n_of_part(&workflows, ends[1]);
-
-    println!("{}", n);
+    println!("{:?}", parts);
     // 167409079868000
     //
     // 1176306889923954 first
@@ -221,166 +164,103 @@ fn main() {
     // 26676912540141 upate merging?
 }
 
-// recursive find n of parts with ranges
-fn range_for_part(workflows: &Vec<Workflow>, end: (usize, usize)) -> RangePart {
-    // println!("{:?}", end);
+// recursive fn that splits where condition is found and returns a vector of range parts
+fn process(workfows: &Vec<Workflow>, range_part: RangePart, workflow_name: &str) -> Vec<RangePart> {
+    let workflow = workfows.iter().find(|w| w.name == workflow_name).unwrap();
 
-    let out = get_range_for_rule(
-        workflows,
-        end.0,
-        end.1,
-        RangePart {
-            x: 1..4000,
-            m: 1..4000,
-            a: 1..4000,
-            s: 1..4000,
-        },
-    );
+    let extras = vec![];
+    let mut curr_part = range_part;
 
-    if out.len() > 1 {
-        println!();
-        println!("OUT");
-        for o in &out {
-            println!("{:?}", o);
-        }
-        panic!("More than one range?!");
+    for rule in workflow.rules {
+        let processed = process_rule(rule, range_part);
+
+        todo!()
     }
 
-    let range_part = &out[0];
-
-    range_part.clone()
+    todo!()
 }
 
-fn get_range_for_rule(
-    workflows: &Vec<Workflow>,
-    workflow_i: usize,
-    rule_i: usize,
-    range_part: RangePart,
-) -> Vec<RangePart> {
-    let mut i = rule_i as i32;
-    let mut range_part = range_part;
-    let mut other = vec![];
-    let workflow = &workflows[workflow_i];
+enum ProcessedRule {
+    SplitAccept(RangePart, RangePart),
+    SplitReject(RangePart, RangePart),
+    SplitTo(RangePart, RangePart, String),
+    To(RangePart, String),
+    Accept(RangePart),
+    Reject(RangePart),
+}
 
-    while i >= -1 {
-        if i == -1 {
-            let n = workflow.name.clone();
-            // println!("range_part {:?}", range_part);
-            // println!("other {:?}", other);
-            // println!("TO {:?}", n);
-            if n == "in" {
-                break;
-            }
+fn process_rule(rule: Rule, range_part: RangePart) -> ProcessedRule {
+    match rule {
+        Rule::Outcome(Outcome::Accept) => ProcessedRule::Accept(range_part),
+        Rule::Outcome(Outcome::Reject) => ProcessedRule::Reject(range_part),
+        Rule::Workflow(name) => ProcessedRule::To(range_part, name),
+        Rule::ConditionToOutcome {
+            outcome,
+            test,
+            op,
+            value,
+        } => {
+            let (cur, extra) = split_range(range_part, test, op, value);
 
-            let rules = find_rules_for_workflow(workflows, &n);
-            let mut r = rules.iter().fold(vec![], |mut acc, rule| {
-                let mut r = get_range_for_rule(workflows, rule.0, rule.1, range_part.clone());
-                acc.append(&mut r);
-                acc
-            });
-
-            if other.len() > 0 {
-                range_part = other.pop().unwrap();
-                other.append(&mut r);
-            }
-
-            break;
-        }
-
-        let rule = &workflow.rules[i as usize];
-
-        match rule {
-            Rule::Outcome(Outcome::Accept) => {
-                i -= 1;
-            }
-            Rule::Workflow(to_w) => {
-                let rules = find_rules_for_workflow(workflows, &to_w);
-                let mut r = rules.iter().fold(vec![], |mut acc, rule| {
-                    let mut r = get_range_for_rule(workflows, rule.0, rule.1, range_part.clone());
-                    acc.append(&mut r);
-                    acc
-                });
-
-                other.append(&mut r);
-                break;
-            }
-            Rule::ConditionToOutcome {
-                outcome,
-                test,
-                op,
-                value,
-            } => {
-                let upper = range_part.get(test).end;
-                let lower = range_part.get(test).start;
-
-                let (l, r) = match op {
-                    Op::GreaterThan => (lower..*value, *value + 1..upper),
-                    Op::LessThan => (*value + 1..upper, lower..*value),
-                };
-
-                let curr = if i == rule_i as i32 {
+            if let Some(extra) = extra {
+                if let Some(cur) = cur {
                     match outcome {
-                        Outcome::Accept => l,
-                        Outcome::Reject => r,
+                        Outcome::Accept => ProcessedRule::SplitAccept(cur, extra),
+                        Outcome::Reject => ProcessedRule::SplitReject(cur, extra),
                     }
                 } else {
                     match outcome {
-                        Outcome::Accept => r,
-                        Outcome::Reject => l,
+                        Outcome::Accept => ProcessedRule::Accept(extra),
+                        Outcome::Reject => ProcessedRule::Reject(extra),
                     }
-                };
-
-                i -= 1;
-                range_part.set(test, curr);
+                }
+            } else {
+                if let Some(cur) = cur {
+                    match outcome {
+                        Outcome::Accept => ProcessedRule::Accept(cur),
+                        Outcome::Reject => ProcessedRule::Reject(cur),
+                    }
+                } else {
+                    panic!("no extra or cur");
+                }
             }
-            Rule::ConditionToWorkflow {
-                workflow: _,
-                test,
-                op,
-                value,
-            } => {
-                let upper = range_part.get(test).end;
-                let lower = range_part.get(test).start;
+        }
+        Rule::ConditionToWorkflow {
+            workflow,
+            test,
+            op,
+            value,
+        } => {
+            let (cur, extra) = split_range(range_part, test, op, value);
 
-                let (n, curr) = match op {
-                    Op::LessThan => (lower..*value, *value + 1..upper),
-                    Op::GreaterThan => (*value + 1..upper, lower..*value),
-                };
-
-                let mut n_range_part = range_part.clone();
-                n_range_part.set(test, n);
-
-                i -= 1;
-                range_part.set(test, curr);
+            if let Some(extra) = extra {
+                if let Some(cur) = cur {
+                    ProcessedRule::SplitTo(cur, extra, workflow)
+                } else {
+                    ProcessedRule::To(extra, workflow)
+                }
+            } else {
+                if let Some(cur) = cur {
+                    ProcessedRule::To(cur, workflow)
+                } else {
+                    panic!("no extra or cur");
+                }
             }
-            r => panic!("Unexpected rule {:?}", r),
-        };
-    }
-
-    [vec![range_part], other].concat()
-}
-
-fn name_matches(rule: &Rule, name: &String) -> bool {
-    match rule {
-        Rule::Outcome(_) => false,
-        Rule::Workflow(w) => w == name,
-        Rule::ConditionToOutcome { outcome, .. } => match outcome {
-            Outcome::Accept => false,
-            Outcome::Reject => false,
-        },
-        Rule::ConditionToWorkflow { workflow, .. } => workflow == name,
+        }
     }
 }
 
-fn find_rules_for_workflow(workflows: &Vec<Workflow>, name: &String) -> Vec<(usize, usize)> {
-    let mut rules = vec![];
-    for (i, workflow) in workflows.iter().enumerate() {
-        workflow
-            .rules
-            .iter()
-            .filter(|r| name_matches(r, name))
-            .enumerate()
-            .for_each(|(j, _)| rules.push((i, j)));
-    }
-    rules
+fn split_range(
+    range_part: RangePart,
+    test: String,
+    op: Op,
+    value: u32,
+) -> (Option<RangePart>, Option<RangePart>) {
+    let (truthy, falsey) = {
+        // split range_part.get(test) into truthy range and falsey range
+        // if one of the ranges is empty then return None for that range
+        todo!()
+    };
+
+    (truthy, falsey)
 }
