@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
 use cached::proc_macro::cached;
-use pathfinding::matrix::Matrix;
 
 fn main() {
     let input = std::fs::read_to_string("src/input/d21p1.txt").unwrap();
@@ -31,9 +30,7 @@ fn main() {
     let columns = lines[0].trim().chars().count();
     let rows = lines.len();
 
-    for i in 0..100 {
-        println!("{}", i);
-
+    for _ in 0..100 {
         let mut queue = points.clone();
         points.clear();
 
@@ -63,6 +60,9 @@ fn main() {
             .collect::<VecDeque<_>>();
     }
 
+    // TODO try replace all . with ' ' then flood fill painting every first as . and second as 0
+    // but not actually painting just counting?
+
     println!("{}", points.len());
 }
 
@@ -70,7 +70,6 @@ fn possible_moves(point: (isize, isize)) -> Vec<(isize, isize)> {
     let (x, y) = point;
     vec![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
 }
-
 
 fn wrap_point(point: (isize, isize), rows: usize, columns: usize) -> (usize, usize) {
     let mut point = (point.0 % rows as isize, point.1 % columns as isize);
