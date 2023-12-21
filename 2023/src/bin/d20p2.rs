@@ -2,6 +2,8 @@
 
 use std::collections::{HashMap, VecDeque};
 
+use num::integer::lcm;
+
 #[derive(Debug)]
 enum Module {
     FlipFlop(String),
@@ -75,30 +77,48 @@ fn main() {
     let mut conjunction_state: HashMap<String, HashMap<String, Pulse>> = HashMap::new();
     let mut flipflop_state: HashMap<String, bool> = HashMap::new();
 
-    let mut high = 0;
-    let mut low = 0;
+    let mut emitters = HashMap::new();
 
     let mut i = 0;
+
     loop {
         i += 1;
 
-        let (h, l, rx_signal) = broadcast(
+        let from_xm = get_from(&find_node(&graph, "xm").unwrap(), &graph);
+
+        let lcm_emitters = broadcast(
             &graph,
             &broadcaster,
             &mut conjunction_state,
             &mut flipflop_state,
         );
 
-        high += h;
-        low += l;
+        // merge lcm_emitters into emitters
+        merge(&mut emitters, lcm_emitters, i);
 
-        if rx_signal == Pulse::Low {
+        if emitters.len() == from_xm.len() {
             break;
         }
     }
 
-    println!("{} x {} = {}", high, low, high * low);
-    println!("{} button presses", i);
+    let out = emitters
+        .values()
+        .map(|(_, i)| i)
+        .fold(1, |acc, x| lcm(acc, *x));
+
+    println!("{:?}", out);
+}
+
+fn merge(
+    emitters: &mut HashMap<String, (Pulse, usize)>,
+    lcm_emitters: HashMap<String, (Pulse, usize)>,
+    i: usize,
+) {
+    for (name, (pulse, _)) in lcm_emitters {
+        if let None = emitters.get(&name) {
+            emitters.insert(name, (pulse, i));
+        }
+    }
 }
 
 fn find_node<'a>(graph: &'a Vec<Node>, name: &str) -> Option<&'a Node> {
@@ -142,11 +162,11 @@ fn broadcast(
     broadcaster: &VecDeque<Signal>,
     conjunction_state: &mut HashMap<String, HashMap<String, Pulse>>,
     flipflop_state: &mut HashMap<String, bool>,
-) -> (usize, usize, Pulse) {
+) -> HashMap<String, (Pulse, usize)> {
     let mut signals = broadcaster.clone();
     let mut h = 0;
     let mut l = 1;
-    let mut rx_signal = Pulse::Low;
+    let mut lcm_emitters = HashMap::new();
 
     while signals.len() > 0 {
         let signal = signals.pop_front().unwrap();
@@ -155,13 +175,14 @@ fn broadcast(
             Pulse::Low => l += 1,
         }
 
+        if signal.to == "xm" && signal.pulse == Pulse::High {
+            lcm_emitters.insert(signal.from.clone(), (signal.pulse, h + l));
+        }
+
         // This check is for the case where a signal is sent to a node that doesn't exist.
         // Used in examples
         let node = find_node(&graph, &signal.to);
         if node.is_none() {
-            if signal.to == "rx" {
-                rx_signal = signal.pulse;
-            }
             continue;
         }
         let node = node.unwrap();
@@ -209,5 +230,5 @@ fn broadcast(
         }
     }
 
-    (h, l, rx_signal)
+    lcm_emitters
 }
