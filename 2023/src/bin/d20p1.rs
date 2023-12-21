@@ -8,7 +8,7 @@ enum Module {
     Conjunction(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum Pulse {
     High,
     Low,
@@ -20,9 +20,10 @@ struct Node {
     to: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Signal {
-    name: String,
+    to: String,
+    from: String,
     pulse: Pulse,
 }
 
@@ -41,7 +42,8 @@ fn main() {
                     .trim()
                     .split(", ")
                     .map(|s| Signal {
-                        name: s.to_string(),
+                        to: s.to_string(),
+                        from: "broadcast".to_string(),
                         pulse: Pulse::Low,
                     })
                     .collect::<Vec<_>>();
@@ -70,57 +72,24 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    for node in graph.iter() {
-        println!("{:?}", node);
-    }
-    println!("{:?}", broadcaster);
-    println!();
-
-    let initial_n = 1 + broadcaster.len();
-    let mut signals = broadcaster;
-    let mut i = 0;
-
-    let mut conjunction_state: HashMap<String, HashMap<String, Option<Pulse>>> = HashMap::new();
+    let mut conjunction_state: HashMap<String, HashMap<String, Pulse>> = HashMap::new();
     let mut flipflop_state: HashMap<String, bool> = HashMap::new();
 
-    while signals.len() > 0 {
-        let signal = signals.pop_front().unwrap();
-        let mut node = find_node(&graph, &signal.name).unwrap();
+    let mut high = 0;
+    let mut low = 0;
 
-        let new_pulse = match &node.data {
-            Module::FlipFlop(name) => match signal.pulse {
-                Pulse::Low => {
-                    let mut is_on = flipflop_state.entry(name.clone()).or_insert(false);
-
-                    if *is_on {
-                        is_on = &mut false;
-                        Some(Pulse::Low)
-                    } else {
-                        is_on = &mut true;
-                        Some(Pulse::High)
-                    }
-                }
-                _ => None,
-            },
-            Module::Conjunction(name) => {
-                let mut state = conjunction_state
-                    .entry(name.clone())
-                    .or_insert(HashMap::new());
-
-                if state.len() != node.to.len() {
-                    None
-                } else {
-                    None
-                }
-            }
-        };
-
-        i += 1;
+    for _ in 0..1000 {
+        let (h, l) = broadcast(
+            &graph,
+            &broadcaster,
+            &mut conjunction_state,
+            &mut flipflop_state,
+        );
+        high += h;
+        low += l;
     }
 
-    let n = initial_n + i;
-
-    println!("{}", n);
+    println!("{} x {} = {}", high, low, high * low);
 }
 
 fn find_node<'a>(graph: &'a Vec<Node>, name: &str) -> Option<&'a Node> {
@@ -128,4 +97,104 @@ fn find_node<'a>(graph: &'a Vec<Node>, name: &str) -> Option<&'a Node> {
         Module::FlipFlop(n) => n == name,
         Module::Conjunction(n) => n == name,
     })
+}
+
+fn get_from(node: &Node, graph: &Vec<Node>) -> Vec<String> {
+    let get_name = |node: &Node| match &node.data {
+        Module::FlipFlop(n) => n.clone(),
+        Module::Conjunction(n) => n.clone(),
+    };
+
+    let name = get_name(node);
+
+    graph.iter().fold(Vec::new(), |mut acc, n| {
+        if n.to.contains(&name) {
+            acc.push(get_name(n).to_string());
+        }
+        acc
+    })
+}
+
+fn pulse_from_conjunction(state: &HashMap<String, Pulse>, from: Vec<String>) -> Pulse {
+    let from_pulses = from
+        .iter()
+        .map(|name| state.get(name).unwrap_or(&Pulse::Low))
+        .collect::<Vec<_>>();
+
+    if from_pulses.iter().all(|pulse| **pulse == Pulse::High) {
+        Pulse::Low
+    } else {
+        Pulse::High
+    }
+}
+
+fn broadcast(
+    graph: &Vec<Node>,
+    broadcaster: &VecDeque<Signal>,
+    conjunction_state: &mut HashMap<String, HashMap<String, Pulse>>,
+    flipflop_state: &mut HashMap<String, bool>,
+) -> (usize, usize) {
+    let mut signals = broadcaster.clone();
+    let mut h = 0;
+    let mut l = 1;
+
+    while signals.len() > 0 {
+        let signal = signals.pop_front().unwrap();
+        match signal.pulse {
+            Pulse::High => h += 1,
+            Pulse::Low => l += 1,
+        }
+
+        // This check is for the case where a signal is sent to a node that doesn't exist.
+        // Used in examples
+        let node = find_node(&graph, &signal.to);
+        if node.is_none() {
+            continue;
+        }
+        let node = node.unwrap();
+
+        let new_pulse = match &node.data {
+            Module::FlipFlop(name) => match signal.pulse {
+                Pulse::Low => {
+                    let is_on = flipflop_state.entry(name.clone()).or_insert(false);
+
+                    if *is_on {
+                        flipflop_state.insert(name.clone(), false);
+                        Some(Pulse::Low)
+                    } else {
+                        flipflop_state.insert(name.clone(), true);
+                        Some(Pulse::High)
+                    }
+                }
+                _ => None, // broadcaster.len();,
+            },
+            Module::Conjunction(name) => {
+                let state = conjunction_state
+                    .entry(name.clone())
+                    .or_insert(HashMap::new());
+
+                state.insert(signal.from.clone(), signal.pulse);
+
+                let from = get_from(&node, &graph);
+
+                Some(pulse_from_conjunction(state, from))
+            }
+        };
+
+        if let Some(new_pulse) = new_pulse {
+            for name in node.to.iter() {
+                // println!("{:?}", node);
+                // println!("{} -{:?}> {}", signal.to, new_pulse, name);
+                // println!();
+                let signal = Signal {
+                    to: name.clone(),
+                    from: signal.to.clone(),
+                    pulse: new_pulse,
+                };
+                signals.push_back(signal);
+            }
+        }
+    }
+
+    (h, l)
 }
