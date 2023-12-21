@@ -168,14 +168,14 @@ fn main() {
 fn process(workfows: &Vec<Workflow>, range_part: RangePart, workflow_name: &str) -> Vec<RangePart> {
     let workflow = workfows.iter().find(|w| w.name == workflow_name).unwrap();
 
-    let extras = vec![];
-    let mut curr_part = range_part;
+    // let extras = vec![];
+    // let mut curr_part = range_part;
 
-    for rule in workflow.rules {
-        let processed = process_rule(rule, range_part);
+    // for rule in workflow.rules {
+    //     let processed = process_rule(rule, range_part);
 
-        todo!()
-    }
+    //     todo!()
+    // }
 
     todo!()
 }
