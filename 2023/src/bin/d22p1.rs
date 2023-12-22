@@ -28,11 +28,6 @@ impl From<&str> for Point {
 }
 
 impl Brick {
-    fn will_fall_on(&self, other: &Self) -> bool {
-        // includes is already resting on
-        self.distance_above(other) > 0 && self.is_aligned(other)
-    }
-
     fn distance_above(&self, other: &Self) -> i32 {
         let self_highest = self.end.z.max(self.start.z);
         let other_lowest = other.start.z.min(other.end.z);
@@ -58,47 +53,87 @@ impl Brick {
         x_overlap && y_overlap
     }
 
-    fn fall_on(&mut self, other: &Self) {
-        let distance = self.distance_above(other);
-        // println!("falling {} on {}", self.id, other.id);
-        // println!("distance: {}", distance - 1);
-        // println!();
-        self.start.z -= distance - 1;
-        self.end.z -= distance - 1;
-    }
+    // fn will_fall_on(&self, other: &Self) -> bool {
+    //     // includes is already resting on
+    //     self.distance_above(other) > 0 && self.is_aligned(other)
+    // }
 
-    fn fall_to_ground(&mut self) {
+    // fn fall_on(&mut self, other: &Self) {
+    //     let distance = self.distance_above(other);
+    //     // println!("falling {} on {}", self.id, other.id);
+    //     // println!("distance: {}", distance - 1);
+    //     // println!();
+    //     self.start.z -= distance - 1;
+    //     self.end.z -= distance - 1;
+    // }
+
+    // fn fall_to_ground(&mut self) {
+    //     self.fall_to(0);
+    // }
+
+    fn fall_to(&mut self, z: i32) {
         let self_highest = self.end.z.max(self.start.z);
-        let distance_to_ground = self_highest - 1;
-        // println!("falling {} to ground", self.id);
+        let distance_to_ground = self_highest - (z + 1);
+        // println!("falling {} to {}", self.id, z);
         // println!("distance: {}", distance_to_ground);
         // println!();
         self.start.z -= distance_to_ground;
         self.end.z -= distance_to_ground;
     }
 
-    fn fall(&mut self, bricks: &Vec<Brick>) {
-        let mut bricks = bricks.clone();
-        bricks.sort_by(sort_highest_first);
+    fn fall(&mut self, z_map: &Vec<Vec<i32>>) {
+        let points = points_in_brick(self);
+        let z_map_points = points
+            .iter()
+            .map(|point| {
+                let x = point.x as usize;
+                let y = point.y as usize;
+                z_map[y][x]
+            })
+            .collect::<Vec<_>>();
 
-        let mut did_fall = false;
-
-        for brick in bricks {
-            if self.id != brick.id && self.will_fall_on(&brick) {
-                self.fall_on(&brick);
-                did_fall = true;
-                break;
-            }
-        }
-
-        if !did_fall {
-            self.fall_to_ground();
-        }
+        let highest_z = z_map_points.iter().max().unwrap();
+        // println!("i am: {:?}", self.id);
+        // println!("points: {:?}", points);
+        // println!("highest z: {}", highest_z);
+        // println!();
+        self.fall_to(*highest_z);
     }
 
     fn is_resting_on(&self, other: &Self) -> bool {
         self.distance_above(other) == 1 && self.is_aligned(other)
     }
+}
+
+fn empty_z_map(bricks: &Vec<Brick>) -> Vec<Vec<i32>> {
+    // 2d grid of highest z location for each x,y
+    let largest_x = bricks.iter().map(|b| b.end.x).max().unwrap();
+    let largest_y = bricks.iter().map(|b| b.end.y).max().unwrap();
+    vec![vec![0; largest_x as usize + 1]; largest_y as usize + 1]
+}
+
+fn add_to_z_map(z_map: &mut Vec<Vec<i32>>, brick: &Brick) {
+    let points = points_in_brick(brick);
+    for point in points {
+        let z = point.z;
+        let x = point.x as usize;
+        let y = point.y as usize;
+        if z_map[y][x] < z {
+            z_map[y][x] = z;
+        }
+    }
+}
+
+fn points_in_brick(brick: &Brick) -> Vec<Point> {
+    let mut points = vec![];
+    for x in brick.start.x..=brick.end.x {
+        for y in brick.start.y..=brick.end.y {
+            for z in brick.start.z..=brick.end.z {
+                points.push(Point { x, y, z });
+            }
+        }
+    }
+    points
 }
 
 fn main() {
@@ -122,12 +157,13 @@ fn main() {
     // print_top_to_bottom(&bricks);
     // println!();
 
-    let l = bricks.len();
     let mut last_round = None;
     let mut bricks = bricks.clone();
     // TODO: could optimise this
-    for i in 0..l {
-        println!("round {} of {}", i, l);
+    let mut i = 0;
+    loop {
+        i += 1;
+        println!("round {}", i);
 
         // if the same as last round, we are done
         if let Some(last_round) = &last_round {
@@ -136,14 +172,20 @@ fn main() {
             }
         }
 
+        bricks.sort_by(sort_highest_first);
+        bricks.reverse();
+
+        let mut z_map = empty_z_map(&bricks);
+
         let mut fallen_bricks = vec![];
         for brick in &bricks {
-            let mut brick = brick.clone();
-            brick.fall(&bricks);
+            let mut brick = *brick;
+            brick.fall(&z_map);
             fallen_bricks.push(brick);
+            add_to_z_map(&mut z_map, &brick);
         }
 
-        last_round = Some(bricks.clone());
+        last_round = Some(bricks);
         bricks = fallen_bricks.clone();
     }
 
@@ -169,14 +211,14 @@ fn main() {
     println!("{}", n);
 }
 
-// fn print_top_to_bottom(bricks: &Vec<Brick>) {
-//     let mut bricks = bricks.clone();
-//     bricks.sort_by(sort_highest_first);
-//     for brick in &bricks {
-//         println!("{}: {:?}", brick.id, brick);
-//     }
-//     println!();
-// }
+fn print_top_to_bottom(bricks: &Vec<Brick>) {
+    let mut bricks = bricks.clone();
+    bricks.sort_by(sort_highest_first);
+    for brick in &bricks {
+        println!("{}: {:?}", brick.id, brick);
+    }
+    println!();
+}
 
 fn can_safely_remove(brick: &Brick, bricks: &Vec<Brick>) -> bool {
     // if has no bricks resting on it, true
