@@ -1,5 +1,6 @@
+use std::collections::VecDeque;
+
 use pathfinding::matrix::Matrix;
-use pathfinding::prelude::dijkstra;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Pos(i32, i32, i32, Vec<(i32, i32)>);
@@ -17,10 +18,6 @@ impl Pos {
                 }
 
                 match grid.get((p.0 as usize, p.1 as usize)) {
-                    // Some('>') => true,
-                    // Some('<') => true,
-                    // Some('^') => true,
-                    // Some('v') => true,
                     Some('>') => x < p.1,
                     Some('<') => x > p.1,
                     Some('^') => y > p.0,
@@ -35,7 +32,7 @@ impl Pos {
                 let (y, x) = p;
                 let mut t = t.clone();
                 t.push((*y, *x));
-                (Pos(*y, *x, n, t), 1)
+                (Pos(*y, *x, n + 1, t), 1)
             })
             .collect();
 
@@ -58,28 +55,26 @@ fn main() {
 
     let goal = Pos(grid.rows as i32 - 2, grid.columns as i32 - 2, 0, vec![]);
 
-    let mut lens = vec![];
-    // let mut last = None;
+    let mut lengths = vec![];
+    let mut queue = VecDeque::new();
+    queue.push_back(Pos(0, 1, 0, vec![]));
 
-    loop {
-        let result = dijkstra(
-            &Pos(0, 1, 0, vec![]),
-            |p| p.successors(&grid),
-            |p| p.0 == goal.0 && p.1 == goal.1 && !lens.contains(&(p.2 + 1)),
-        );
+    while queue.len() > 0 {
+        let p = queue.pop_front().unwrap();
 
-        if let Some(result) = result {
-            println!("{:?} so far", lens.len());
-            lens.push(result.1 as i32 + 1);
-            // last = Some(result.0);
-            continue;
+        if p.0 == goal.0 && p.1 == goal.1 {
+            lengths.push(p.2 + 1);
         }
 
-        break;
+        let next = p.successors(&grid);
+
+        for (n, _) in next {
+            queue.push_back(n)
+        }
     }
 
     // println!("{:?}", lens);
-    let longest = lens.iter().max().unwrap();
+    let longest = lengths.iter().max().unwrap();
     println!("{:?}", longest);
 
     // println!("{}", input);
