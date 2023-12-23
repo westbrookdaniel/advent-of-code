@@ -1,5 +1,8 @@
 use rayon::prelude::*;
-use std::{cmp::Ordering, collections::VecDeque};
+use std::{
+    cmp::Ordering,
+    collections::{HashSet, VecDeque},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Point {
@@ -190,6 +193,7 @@ fn main() {
     // println!();
 
     let mut to_sim = vec![];
+    let mut n = 0;
     for brick in &bricks {
         // println!("can we remove {}?", letter(brick.id));
         let can_remove = can_safely_remove(brick, &bricks);
@@ -197,14 +201,18 @@ fn main() {
         // println!();
         if !can_remove {
             to_sim.push(*brick);
+        } else {
+            n += 1;
         }
     }
 
+    println!("p1: {}", n);
+
     println!(
-        "{:?}",
+        "p2: {:?}",
         to_sim
             .par_iter()
-            .map(|b| { n_would_fall(*b, bricks.clone()) })
+            .map(|b| n_would_fall(*b, bricks.clone()).len() - 1)
             .sum::<usize>()
     );
 }
@@ -240,51 +248,45 @@ fn sort_highest_first(a: &Brick, b: &Brick) -> Ordering {
     b_dist.cmp(&a_dist)
 }
 
-fn n_would_fall(brick: Brick, bricks: Vec<Brick>) -> usize {
-    let mut to_be_removed: Vec<i32> = vec![];
+fn n_would_fall(brick: Brick, bricks: Vec<Brick>) -> HashSet<i32> {
+    let mut to_be_removed: HashSet<i32> = HashSet::new();
     let mut queue: VecDeque<Vec<Brick>> = VecDeque::new();
     queue.push_back(vec![brick]);
 
     while queue.len() > 0 {
         let brick_list = queue.pop_front().unwrap();
 
+        if to_be_removed.contains(&(brick.id as i32)) {
+            // in case we have something else
+            to_be_removed.extend(brick_list.iter().map(|b| b.id as i32));
+            continue;
+        }
+
         let curr = brick_list.last().unwrap();
 
-        let resting_on = bricks
+        let supports = bricks
             .iter()
             .filter(|b| b.id != curr.id)
             .filter(|b| b.is_resting_on(&curr))
             .collect::<Vec<_>>();
 
-        if resting_on.len() < 1 {
+        if supports.len() == 0 {
             to_be_removed.extend(brick_list.iter().map(|b| b.id as i32));
         };
 
-        let queue_ends = queue
-            .iter()
-            .map(|b| b.last().unwrap().id)
-            .collect::<Vec<_>>();
-
-        resting_on.iter().for_each(|brick| {
-            if queue_ends.contains(&brick.id) {
-                return;
-            }
-
+        supports.iter().for_each(|brick| {
             let mut brick_list = brick_list
                 .iter()
                 .collect::<std::collections::HashSet<_>>()
                 .iter()
                 .map(|b| **b)
                 .collect::<Vec<_>>();
-
             brick_list.push(**brick);
             queue.push_back(brick_list);
         });
     }
 
-    let removed = to_be_removed
-        .iter()
-        .collect::<std::collections::HashSet<_>>();
+    // println!("to be removed: {:?}", to_be_removed);
 
-    removed.len() - 1
+    to_be_removed
 }
