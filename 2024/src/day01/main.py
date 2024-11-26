@@ -1,8 +1,9 @@
 from pathlib import Path
 
 
-def main():
-    lines = open(Path(__file__).parent / "sample.txt", "r").read().strip().split("\n")
+def main(name: str):
+    file = open(Path(__file__).parent / name, "r").read()
+    lines = file.strip().split("\n")
 
     total = 0
 
@@ -21,9 +22,9 @@ def main():
     return total
 
 
-def test_p1():
-    assert main() == 142
+def test_sample():
+    assert main("sample.txt") == 142
 
 
 if __name__ == "__main__":
-    print(main())
+    print(main("sample.txt"))
