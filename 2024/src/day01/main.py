@@ -2,7 +2,7 @@ from collections import Counter
 from pathlib import Path
 
 
-def main_p1(name: str):
+def parse(name: str):
     lines = open(Path(__file__).parent / name, "r").readlines()
 
     aArr: list[int] = []
@@ -12,6 +12,12 @@ def main_p1(name: str):
         a, b = line.split()
         aArr.append(int(a))
         bArr.append(int(b))
+
+    return aArr, bArr
+
+
+def part1(name: str):
+    aArr, bArr = parse(name)
 
     aArr.sort()
     bArr.sort()
@@ -26,16 +32,8 @@ def main_p1(name: str):
     return total
 
 
-def main_p2(name: str):
-    lines = open(Path(__file__).parent / name, "r").readlines()
-
-    aArr: list[int] = []
-    bArr: list[int] = []
-
-    for line in lines:
-        a, b = line.split()
-        aArr.append(int(a))
-        bArr.append(int(b))
+def part2(name: str):
+    aArr, bArr = parse(name)
 
     total = 0
     cnt = Counter(bArr)
@@ -48,16 +46,16 @@ def main_p2(name: str):
 
 
 def test_sample():
-    assert main_p1("sample.txt") == 11
+    assert part1("sample.txt") == 11
 
 
 def test_p1():
-    assert main_p1("p1.txt") == 1660292
+    assert part1("input.txt") == 1660292
 
 
 def test_p2():
-    assert main_p2("p1.txt") == 22776016
+    assert part2("input.txt") == 22776016
 
 
 if __name__ == "__main__":
-    print(main_p1("sample.txt"))
+    print(part1("sample.txt"))
