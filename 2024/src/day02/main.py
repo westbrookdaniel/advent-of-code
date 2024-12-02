@@ -5,35 +5,9 @@ def part1(name: str):
     lines = open(Path(__file__).parent / name, "r").readlines()
 
     safe = 0
-
     for report in lines:
-        levels = map(int, report.split())
-        prev: int | None = None
-        isIncr: bool | None = None
-        unsafe = False
-
-        for level in levels:
-            if prev is None:
-                prev = level
-            else:
-                if isIncr is None:
-                    isIncr = prev < level
-
-                diff = abs(prev - level)
-
-                if diff < 1 or diff > 3:
-                    unsafe = True
-
-                if isIncr:
-                    if prev > level:
-                        unsafe = True
-                else:
-                    if prev < level:
-                        unsafe = True
-
-                prev = level
-
-        if not unsafe:
+        levels = list(map(int, report.split()))
+        if not is_unsafe(levels):
             safe += 1
 
     return safe
@@ -43,55 +17,52 @@ def part2(name: str):
     lines = open(Path(__file__).parent / name, "r").readlines()
 
     safe = 0
-
     for report in lines:
-        if check_report(report):
+        levels = list(map(int, report.split()))
+        if is_any_safe(levels):
             safe += 1
 
     return safe
 
 
-# true if safe
-def check_report(report):
-    levels = list(map(int, report.split()))
-
-    if not check(levels):
+def is_any_safe(levels: list[int]):
+    if not is_unsafe(levels):
         return True
 
     for i in range(len(levels)):
         removed = levels.copy()
         del removed[i]
-        if not check(removed):
+        if not is_unsafe(removed):
             return True
 
     return False
 
 
-# true if unsafe (yeah ik)
-def check(levels):
+def is_unsafe(levels: list[int]):
     isIncr: None | bool = None
     prev: int | None = None
 
     for level in levels:
         if prev is None:
             prev = level
+            continue
+
+        if isIncr is None:
+            isIncr = prev < level
+
+        diff = abs(prev - level)
+
+        if diff < 1 or diff > 3:
+            return True
+
+        if isIncr:
+            if prev > level:
+                return True
         else:
-            if isIncr is None:
-                isIncr = prev < level
-
-            diff = abs(prev - level)
-
-            if diff < 1 or diff > 3:
+            if prev < level:
                 return True
 
-            if isIncr:
-                if prev > level:
-                    return True
-            else:
-                if prev < level:
-                    return True
-
-            prev = level
+        prev = level
 
     return False
 
