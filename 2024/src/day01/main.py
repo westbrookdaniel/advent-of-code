@@ -5,26 +5,33 @@ def main(name: str):
     file = open(Path(__file__).parent / name, "r").read()
     lines = file.strip().split("\n")
 
-    total = 0
+    aArr: list[int] = []
+    bArr: list[int] = []
 
     for line in lines:
-        first = None
-        last = None
-        for c in line:
-            if c.isdigit():
-                last = c
-                if first is None:
-                    first = c
+        a, b = line.split("  ")
+        aArr.append(int(a))
+        bArr.append(int(b))
 
-        if first and last:
-            total += int(first + last)
+    aArr.sort()
+    bArr.sort()
+
+    total = 0
+
+    for i in range(len(bArr)):
+        a = aArr[i]
+        b = bArr[i]
+        if b > a:
+            total += b - a
+        else:
+            total += a - b
 
     return total
 
 
 def test_sample():
-    assert main("sample.txt") == 142
+    assert main("sample.txt") == 11
 
 
 if __name__ == "__main__":
-    print(main("sample.txt"))
+    print(main("p1.txt"))
