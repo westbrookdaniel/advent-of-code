@@ -45,12 +45,16 @@ def part2(name: str):
     return total
 
 
-def test_sample():
+def test_sample_p1():
     assert part1("sample.txt") == 11
 
 
 def test_p1():
     assert part1("input.txt") == 1660292
+
+
+def test_sample_p2():
+    assert part2("sample.txt") == 31
 
 
 def test_p2():
