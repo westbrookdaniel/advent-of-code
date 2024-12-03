@@ -49,18 +49,17 @@ def test_sample_p1():
     assert part1("sample.txt") == 161
 
 
-# def test_p1():
-#     assert part1("input.txt") == 559
+def test_p1():
+    assert part1("input.txt") == 175700056
 
 
-# def test_sample_p2():
-#     assert part2("sample.txt") == 4
+def test_sample_p2():
+    assert part2("sample2.txt") == 48
 
 
-# def test_p2():
-#     assert part2("input.txt") == 601
+def test_p2():
+    assert part2("input.txt") == 71668682
 
 
 if __name__ == "__main__":
-    print("")
     print(part2("input.txt"))
