@@ -40,6 +40,24 @@ def compact(disk: list[int | None]):
     return disk
 
 
+def no_frag_compact(disk: list[int | None]):
+    i = 0
+    while i < len(disk):
+        space = disk[i]
+        if space is None:
+            last = disk.pop()
+            while last is None:
+                continue
+            last_file = [last]
+            last = disk.pop()
+            while last is not None:
+                last_file.append(last)
+            # override(disk, i, last_file)
+        i += 1
+
+    return disk
+
+
 def part1(name: str):
     file = open(Path(__file__).parent / name, "r").read()
 
@@ -56,16 +74,32 @@ def part1(name: str):
     return sum
 
 
+def part2(name: str):
+    file = open(Path(__file__).parent / name, "r").read()
+
+    disk = create_disk(file)
+    compacted = no_frag_compact(disk)
+
+    sum = 0
+    for i in range(len(list(compacted))):
+        n = compacted[i]
+        if n is None:
+            continue
+        sum += i * n
+
+    return sum
+
+
 def test_sample_p1():
     assert part1("sample.txt") == 1928
 
 
-# def test_p1():
-#     assert part1("input.txt") == 5166
+def test_p1():
+    assert part1("input.txt") == 6367087064415
 
 
 # def test_sample_p2():
-#     assert part2("sample.txt") == 123
+#     assert part2("sample.txt") == 2858
 
 
 # def test_p2():
@@ -74,4 +108,4 @@ def test_sample_p1():
 
 if __name__ == "__main__":
     print("")
-    print(part1("input.txt"))
+    print(part2("sample.txt"))
