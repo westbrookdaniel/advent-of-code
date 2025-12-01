@@ -1,7 +1,7 @@
 import assert from "assert";
 import fs from "fs";
 
-const input = fs.readFileSync("2025/src/day01/input.txt", "utf8");
+const input = fs.readFileSync(import.meta.dir + "/input.txt", "utf8");
 const lines = input.trim().split("\n");
 
 let pos = 50;
