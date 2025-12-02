@@ -26,6 +26,6 @@ for (const range of ranges) {
   }
 }
 
-const total = invalidIds.reduce((a, b) => a + b);
+const total = invalidIds.reduce((a, b) => a + b, 0);
 
 console.log(total);
