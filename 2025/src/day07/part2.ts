@@ -2,31 +2,33 @@ import assert from "assert";
 import fs from "fs";
 
 const input = fs.readFileSync(import.meta.dir + "/input.txt", "utf8");
-
 const lines = input.trim().split("\n");
 
-let beams: number[] = [];
+const index = lines[0]!.indexOf("S");
 
-let splitCount = 0;
+const cache = <T extends (...args: any) => any>(fn: T): T => {
+  const map: Record<string, T> = {};
+  return ((...args: Parameters<T>) => {
+    const key = JSON.stringify(args);
+    if (map[key]) return map[key];
+    const result = fn(...args);
+    map[key] = result;
+    return result;
+  }) as any;
+};
 
-for (const line of lines) {
-  if (!beams.length) {
-    beams.push(line.indexOf("S"));
-    continue;
+const countPaths = cache((index: number, lines: string[]): number => {
+  if (lines.length === 0) return 1;
+
+  const next = lines.slice(1);
+
+  if (lines[0]![index] === "^") {
+    const a = countPaths(index - 1, next);
+    const b = countPaths(index + 1, next);
+    return a + b;
   }
 
-  const next = beams.reduce<number[]>((acc, beam) => {
-    let chars = line.split("");
-    if (chars[beam] === "^") {
-      splitCount += 1;
-      acc.push(beam - 1, beam + 1);
-    } else {
-      acc.push(beam);
-    }
-    return acc;
-  }, []);
+  return countPaths(index, next);
+});
 
-  beams = [...new Set(next)];
-}
-
-console.log(splitCount);
+console.log(countPaths(index, lines));
