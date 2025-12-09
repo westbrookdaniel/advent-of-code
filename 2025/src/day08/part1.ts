@@ -24,34 +24,32 @@ const boxes = input
     return { id: i, x, y, z };
   });
 
-const distances: string[] = [];
+const obj: Record<string, number> = {};
 
 for (const box of boxes) {
   for (const other of boxes) {
     if (box.id === other.id) continue;
-    const dist = distance(box, other);
-    const data = `${dist},${box.id},${other.id}`;
-    const alt = `${dist},${other.id},${box.id}`;
-    if (!(distances.includes(data) || distances.includes(alt))) {
-      distances.push(data);
-    }
+
+    let key = "";
+    if (box.id < other.id) key = `${other.id},${box.id}`;
+    else key = `${box.id},${other.id}`;
+
+    if (!obj[key]) obj[key] = distance(box, other);
   }
 }
 
+const distances = Object.entries(obj);
+
 distances.sort((a, b) => {
-  const [aStr] = a.split(",");
-  const aNum = parseFloat(aStr!);
-
-  const [bStr] = b.split(",");
-  const bNum = parseFloat(bStr!);
-
+  const [, aNum] = a;
+  const [, bNum] = b;
   return aNum - bNum;
 });
 
 const PAIRS = 1_000;
 
 const joins = distances.slice(0, PAIRS).map((dist) => {
-  const [_, aId, bId] = dist.split(",");
+  const [aId, bId] = dist[0].split(",");
   return [aId!, bId!];
 });
 
