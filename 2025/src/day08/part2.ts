@@ -54,43 +54,31 @@ distances.sort((a, b) => {
 console.timeEnd("sort");
 console.time("convert");
 
-const PAIRS = 1_000;
-
-const joins = distances.slice(0, PAIRS).map((dist) => {
-  const [aId, bId] = dist[0].split(",");
-  return [aId!, bId!];
-});
+const joins = Object.fromEntries(
+  distances.flatMap((dist) => {
+    const [aId, bId] = dist[0].split(",");
+    return [
+      [aId!, bId!],
+      [bId, aId],
+    ];
+  }),
+);
 
 console.timeEnd("convert");
 console.time("circuit");
 
-for (const join of joins) {
-  for (const other of joins) {
-    if (join === other) continue;
+const circuits: string[][] = [];
 
-    if (other.includes(join[0]!) || other.includes(join[1]!)) {
-      other.push(...join);
-      other.splice(0, other.length, ...new Set(other));
-    }
+for (const join of Object.keys(joins)) {
+  const arr = [join];
+  let from = join;
+  while (!joins[from] || !arr.includes(joins[from]!)) {
+    from = joins[from]!;
+    if (from !== undefined) arr.push(from);
   }
+  circuits.push(arr);
 }
 
 console.timeEnd("circuit");
-console.time("final");
 
-const final = joins
-  .map((j) => j.sort())
-  .reduce<string[][]>((acc, a) => {
-    for (const b of acc) {
-      if (a.join() === b.join()) return acc;
-    }
-    acc.push(a);
-    return acc;
-  }, [])
-  .sort((a, b) => b.length - a.length)
-  .slice(0, 3)
-  .map((j) => j.length)
-  .reduce((acc, n) => acc * n);
-
-console.timeEnd("final");
-console.log(final);
+console.log(circuits);
