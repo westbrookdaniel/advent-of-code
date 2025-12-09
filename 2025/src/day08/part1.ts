@@ -1,5 +1,4 @@
 import assert from "assert";
-import { keyBy } from "es-toolkit";
 import fs from "fs";
 
 type Point = {
@@ -27,11 +26,8 @@ const boxes = input
 
 const distances: string[] = [];
 
-console.log("distances starting");
-
 let i = 0;
 for (const box of boxes) {
-  process.stdout.write((i++).toString() + ",");
   for (const other of boxes) {
     if (box.id === other.id) continue;
     const dist = distance(box, other);
@@ -42,8 +38,6 @@ for (const box of boxes) {
     }
   }
 }
-
-console.log("distances done");
 
 distances.sort((a, b) => {
   const [aStr] = a.split(",");
