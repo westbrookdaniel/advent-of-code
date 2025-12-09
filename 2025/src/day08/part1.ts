@@ -26,6 +26,8 @@ const boxes = input
 
 const obj: Record<string, number> = {};
 
+console.time("distances");
+
 for (const box of boxes) {
   for (const other of boxes) {
     if (box.id === other.id) continue;
@@ -38,6 +40,9 @@ for (const box of boxes) {
   }
 }
 
+console.timeEnd("distances");
+console.time("sort");
+
 const distances = Object.entries(obj);
 
 distances.sort((a, b) => {
@@ -46,12 +51,16 @@ distances.sort((a, b) => {
   return aNum - bNum;
 });
 
-const PAIRS = 1_000;
+console.timeEnd("sort");
+console.time("convert");
 
-const joins = distances.slice(0, PAIRS).map((dist) => {
+const joins = distances.map((dist) => {
   const [aId, bId] = dist[0].split(",");
   return [aId!, bId!];
 });
+
+console.timeEnd("convert");
+console.time("circuit");
 
 for (const join of joins) {
   for (const other of joins) {
@@ -63,6 +72,9 @@ for (const join of joins) {
     }
   }
 }
+
+console.timeEnd("circuit");
+console.time("final");
 
 const final = joins
   .map((j) => j.sort())
@@ -78,4 +90,5 @@ const final = joins
   .map((j) => j.length)
   .reduce((acc, n) => acc * n);
 
+console.timeEnd("final");
 console.log(final);
