@@ -20,8 +20,13 @@ const boxes = input
   .trim()
   .split("\n")
   .map((str, i): Point => {
-    const [x, y, z] = str.split(",") as any;
-    return { id: i, x, y, z };
+    const [x, y, z] = str.split(",");
+    return {
+      id: i,
+      x: parseInt(x!),
+      y: parseInt(y!),
+      z: parseInt(z!),
+    };
   });
 
 const obj: Record<string, number> = {};
@@ -54,31 +59,32 @@ distances.sort((a, b) => {
 console.timeEnd("sort");
 console.time("convert");
 
-const joins = Object.fromEntries(
-  distances.flatMap((dist) => {
-    const [aId, bId] = dist[0].split(",");
-    return [
-      [aId!, bId!],
-      [bId, aId],
-    ];
-  }),
-);
+const joins = distances.map((dist) => {
+  const [aId, bId] = dist[0].split(",");
+  return [aId!, bId!] as const;
+});
 
 console.timeEnd("convert");
 console.time("circuit");
 
-const circuits: string[][] = [];
+const circuit = [joins[0]![0]];
 
-for (const join of Object.keys(joins)) {
-  const arr = [join];
-  let from = join;
-  while (!joins[from] || !arr.includes(joins[from]!)) {
-    from = joins[from]!;
-    if (from !== undefined) arr.push(from);
+// TODO this part is wrong, make sure it gets part 1 right still
+
+for (const join of joins) {
+  if (circuit.includes(join[0])) {
+    if (!circuit.includes(join[1])) circuit.push(join[1]);
+  } else if (circuit.includes(join[1])) {
+    if (!circuit.includes(join[0])) circuit.push(join[0]);
   }
-  circuits.push(arr);
 }
 
 console.timeEnd("circuit");
 
-console.log(circuits);
+const aId = circuit.pop();
+const bId = circuit.pop();
+
+const a = boxes.find((box) => box.id.toString() === aId)!;
+const b = boxes.find((box) => box.id.toString() === bId)!;
+
+console.log(a.x * b.x);
