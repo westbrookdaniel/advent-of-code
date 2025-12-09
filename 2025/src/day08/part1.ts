@@ -26,7 +26,6 @@ const boxes = input
 
 const distances: string[] = [];
 
-let i = 0;
 for (const box of boxes) {
   for (const other of boxes) {
     if (box.id === other.id) continue;
